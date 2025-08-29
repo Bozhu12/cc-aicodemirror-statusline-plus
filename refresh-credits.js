@@ -13,6 +13,76 @@ const os = require('os');
 // 禁用SSL证书验证警告
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
+/**
+ * 检查并触发积分重置
+ * @param {Object} config 配置对象
+ * @param {Object} creditsData 积分数据
+ */
+function checkAndTriggerReset(config, creditsData) {
+    // 初始化默认配置
+    if (!config.creditThreshold) config.creditThreshold = 1000;
+    if (!config.hasOwnProperty('autoResetEnabled')) config.autoResetEnabled = true;
+
+    // 检查是否启用自动重置
+    if (!config.autoResetEnabled) return;
+    
+    // 检查积分是否低于阈值
+    const currentCredits = creditsData.credits || 0;
+    if (currentCredits >= config.creditThreshold) return;
+    
+    // 触发积分重置
+    triggerCreditReset(config.cookies)
+        .catch(() => {
+            // 静默处理错误，不影响主流程
+        });
+}
+
+/**
+ * 触发积分重置接口
+ * @param {string} cookies Cookie字符串
+ * @returns {Promise<boolean>}
+ */
+function triggerCreditReset(cookies) {
+    return new Promise((resolve) => {
+        try {
+            const options = {
+                hostname: 'www.aicodemirror.com',
+                path: '/api/user/credit-reset',
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Cookie': cookies,
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+                    'priority': 'u=1, i'
+                },
+                timeout: 5000
+            };
+
+            const req = https.request(options, (res) => {
+                let data = '';
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
+
+                res.on('end', () => {
+                    resolve(res.statusCode === 200);
+                });
+            });
+
+            req.on('error', () => resolve(false));
+            req.on('timeout', () => {
+                req.destroy();
+                resolve(false);
+            });
+
+            req.end();
+            
+        } catch (error) {
+            resolve(false);
+        }
+    });
+}
+
 function refreshCreditsCache() {
     return new Promise((resolve) => {
         try {
@@ -68,6 +138,9 @@ function refreshCreditsCache() {
                                 data: jsonData,
                                 timestamp: Date.now() / 1000
                             };
+                            
+                            // 检查是否需要自动重置积分
+                            checkAndTriggerReset(config, jsonData);
                             
                             fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
                             resolve(true);

@@ -8,5 +8,7 @@
       "plan": "MAX"
     },
     "timestamp": 1755704131.115
-  }
+  },
+  "creditThreshold": 100,
+  "autoResetEnabled": true
 }
