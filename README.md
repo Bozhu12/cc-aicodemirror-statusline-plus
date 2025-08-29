@@ -32,11 +32,6 @@ git clone https://github.com/your-repo/cc-aicodemirror-statusline-plus.git .
 
 ```json
 {
-  "env": {
-    "BASH_DEFAULT_TIMEOUT_MS": "600000",
-    "BASH_MAX_TIMEOUT_MS": "1800000"
-  },
-  "model": "opusplan",
   "hooks": {
     "Stop": [
       {
@@ -61,11 +56,6 @@ git clone https://github.com/your-repo/cc-aicodemirror-statusline-plus.git .
 
 ```json
 {
-  "env": {
-    "BASH_DEFAULT_TIMEOUT_MS": "600000",
-    "BASH_MAX_TIMEOUT_MS": "1800000"
-  },
-  "model": "opusplan",
   "hooks": {
     "Stop": [
       {
