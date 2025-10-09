@@ -125,19 +125,9 @@ node save-cookie.js "你的Cookie字符串"
 ### 示例显示
 
 ```
-💎 12345(Claude 4 Sonnet) | session-storage | main(3) | /Users/username/project
+积分:456/8000 | 订阅:PRO | Claude 4 Sonnet | default | main(3) | /Users/username/project
 ```
 
-### 图标说明
-
-| 计划类型 | 图标 | 说明 |
-|---------|-----|------|
-| ULTRA   | 👑  | 旗舰版 |
-| MAX     | 💎  | 最高版 |
-| PRO     | ⭐  | 专业版 |
-| FREE    | 🆓  | 免费版 |
-| 未登录   | 🍪  | 需要Cookie |
-| 错误    | 🔴  | 数据异常 |
 
 ## 🔧 配置文件说明
 
@@ -158,13 +148,13 @@ node save-cookie.js "你的Cookie字符串"
     "timestamp": 1755704131.115
   },
   "creditThreshold": 1000,
-  "autoResetEnabled": true
+  "autoResetEnabled": false
 }
 ```
 
 **新增配置说明：**
 - `creditThreshold`: 积分重置触发阈值，当积分低于此值时触发重置（默认：1000）
-- `autoResetEnabled`: 是否启用自动积分重置功能（默认：true）
+- `autoResetEnabled`: 是否启用自动积分重置功能（默认：false）
 
 ### 环境变量支持
 
@@ -179,7 +169,7 @@ node save-cookie.js "你的Cookie字符串"
 
 ### 触发条件
 积分重置**仅在以下条件同时满足时触发**：
-1. **功能启用**：`autoResetEnabled` 为 `true`（默认开启）
+1. **功能启用**：`autoResetEnabled` 为 `false`（默认关闭）
 2. **积分不足**：当前积分 < 设定阈值（默认100）
 3. **会话结束**：Claude Code 停止对话时（Hook Stop 触发）
 
@@ -306,7 +296,7 @@ cat ~/.claude/settings.json | grep model
 当 Cookie 过期时（通常每隔一段时间），你需要重新获取：
 
 1. 浏览器重新登录 aicodemirror.com
-2. 按 F12 -> Network -> 刷新 -> 找到 `/api/user/credits` 请求
+2. 按 F12 -> Network -> 刷新 -> 找到 `/dashboard` 请求
 3. 复制新的 Cookie 值
 4. 运行：`node save-cookie.js "新的Cookie字符串"`
 5. 重启 Claude Code
