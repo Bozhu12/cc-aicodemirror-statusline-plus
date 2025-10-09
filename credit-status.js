@@ -19,6 +19,14 @@ const CONFIG_FILE = path.join(__dirname, 'aicodemirror-config.json');
 // 禁用SSL证书验证警告
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
+
+function consoleLog(...logs) {
+  if (false) {
+    console.log(...logs);
+  }
+}
+
+
 function loadConfig() {
     try {
         if (!fs.existsSync(CONFIG_FILE)) {
@@ -66,10 +74,10 @@ function getCredits(cookies) {
 
         const options = {
             hostname: 'www.aicodemirror.com',
-            path: '/api/user/credits',
+            path: '/dashboard',
             method: 'GET',
             headers: {
-                'Accept': 'application/json',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 'Cookie': cookies,
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
             },
@@ -84,21 +92,65 @@ function getCredits(cookies) {
 
             res.on('end', () => {
                 try {
+                    consoleLog("-----------", res.statusCode, "-----------");
+                    consoleLog(data);
                     if (res.statusCode === 200) {
-                        const jsonData = JSON.parse(data);
-                        
-                        // 保存到缓存
-                        config[cacheKey] = {
-                            data: jsonData,
-                            timestamp: currentTime
-                        };
-                        saveConfig(config);
-                        
-                        resolve(jsonData);
+
+                        // 检查一下能不能找到initialData
+                        const firstCheck = data.includes('initialData');
+                        consoleLog("包含 initialData:", firstCheck);
+                        // 打印 initialData 之后的1000个字符
+                        const index = data.indexOf('initialData');
+                        const snippet = data.substring(index, index + 1000);
+                        consoleLog("initialData 片段:", snippet);
+
+                        // initialData\":{\"current\":\"256\",\"max\":\"8000\",\"normal\":\"256\",\"bonus\":\"0\",\"plan\":\"PRO\",\"recoveryRate\":\"200\",\"lastRecoveryTimeFormatted\":\"2025-10-09 21:00:00\",\"lastRecoveryTimeRelative\":\"2 分钟前\",\"dailyResets\":1,\"todayResetCount\":1,\"remainingResets\":0,\"canResetToday\":false,\"lastResetAtFormatted\":\"2025-10-09 17:38:16\",\"dailyUsageInfo\":null}
+                        //
+                        // 正确的正则表达式，注意 \\" 用来匹配 \"
+                        const testMatch = snippet.match(/initialData\\":({.*?})/);
+
+                        consoleLog("测试正则匹配结果:", testMatch);
+
+                        if (testMatch && testMatch[1]) {
+                            consoleLog("成功提取到的JSON字符串:", testMatch[1]);
+
+                            const correctedString = testMatch[1].replace(/\\"/g, '"');
+
+                            consoleLog("Corrected String:", correctedString);
+
+                            try {
+                                // Now, parse the corrected string
+                                const dataObject = JSON.parse(correctedString);
+                                consoleLog("JSON Parsed Successfully:", dataObject);
+
+                                // 保存到缓存
+                                config[cacheKey] = {
+                                    data: dataObject,
+                                    timestamp: currentTime
+                                };
+                                saveConfig(config);
+
+                                resolve(dataObject)
+
+
+
+                            } catch (e) {
+                                consoleLog("JSON Parsing Error:", e);
+                                resolve(null);
+                            }
+
+
+                        } else {
+                            consoleLog("未匹配到结果。");
+                            resolve(null);
+                        }
+
                     } else {
+                        consoleLog("非200响应");
                         resolve(null);
                     }
                 } catch (error) {
+                    consoleLog("Error processing response:", error);
                     resolve(null);
                 }
             });
@@ -296,13 +348,15 @@ function formatDisplay(data) {
     }
     
     try {
-        const credits = data.credits || 0;
+        const credits = data.current || 0;
+        const max = data.max || 0;
         const plan = data.plan || 'FREE';
+        const canResetToday = data.canResetToday || false;
         const creditsText = formatCredits(credits);
         const planIcon = getPlanIcon(plan);
         const currentModel = getCurrentModel();
         
-        return `${blue}${planIcon} ${creditsText}(${currentModel})${stylePart}${branchPart}${workspacePart}${reset}`;
+        return `${blue} 积分:${creditsText}/${max} | 重置:${canResetToday} | 订阅:${plan} | ${currentModel}${stylePart}${branchPart}${workspacePart}${reset}`;
         
     } catch (error) {
         const currentModel = getCurrentModel();
@@ -331,17 +385,20 @@ async function main() {
         if (!checkAnthropicBaseUrl()) {
             const currentUrl = getDisplayUrl();
             const currentModel = getCurrentModel();
-            console.log(`${currentModel} | ${currentUrl}`);
+            consoleLog(`${currentModel} | ${currentUrl}`);
             return;
         }
         
         // 获取有效session和积分数据
         const session = getValidSession();
         let creditsData = null;
+        consoleLog("获取有效session和积分数据")
         
         if (session) {
             creditsData = await getCredits(session.cookies);
         }
+        consoleLog("获取积分数据完成")
+        consoleLog(creditsData)
         
         // 格式化并输出状态
         const statusText = formatDisplay(creditsData);

@@ -15,7 +15,7 @@ function saveCookie() {
         console.log();
         console.log("📝 步骤：");
         console.log("1. 浏览器登录 https://www.aicodemirror.com/dashboard");
-        console.log("2. F12 -> Network -> 刷新页面 -> 找到 /api/user/credits");
+        console.log("2. F12 -> Network -> 刷新页面 -> 找到 /dashboard");
         console.log("3. 复制Cookie值");
         console.log("4. node save-cookie.js 'Cookie内容'");
         return false;
@@ -61,7 +61,7 @@ function saveCookie() {
             
             if (result.includes('🍪')) {
                 console.log("❌ Cookie无效，请重新获取");
-            } else if (['👑', '⭐', '💎', '🆓'].some(emoji => result.includes(emoji))) {
+            } else if (result.includes('积分')) {
                 console.log("✅ 测试成功！");
                 console.log("🎉 现在重启Claude Code即可看到状态栏积分显示");
             } else {

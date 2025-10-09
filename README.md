@@ -158,13 +158,13 @@ node save-cookie.js "你的Cookie字符串"
     "timestamp": 1755704131.115
   },
   "creditThreshold": 1000,
-  "autoResetEnabled": true
+  "autoResetEnabled": false
 }
 ```
 
 **新增配置说明：**
 - `creditThreshold`: 积分重置触发阈值，当积分低于此值时触发重置（默认：1000）
-- `autoResetEnabled`: 是否启用自动积分重置功能（默认：true）
+- `autoResetEnabled`: 是否启用自动积分重置功能（默认：false）
 
 ### 环境变量支持
 
@@ -179,7 +179,7 @@ node save-cookie.js "你的Cookie字符串"
 
 ### 触发条件
 积分重置**仅在以下条件同时满足时触发**：
-1. **功能启用**：`autoResetEnabled` 为 `true`（默认开启）
+1. **功能启用**：`autoResetEnabled` 为 `true`（默认关闭）
 2. **积分不足**：当前积分 < 设定阈值（默认100）
 3. **会话结束**：Claude Code 停止对话时（Hook Stop 触发）
 
@@ -187,7 +187,7 @@ node save-cookie.js "你的Cookie字符串"
 ```json
 {
   "creditThreshold": 100,      // 触发阈值，可自定义
-  "autoResetEnabled": true      // 功能开关，可随时关闭
+  "autoResetEnabled": false      // 功能开关，可随时关闭
 }
 ```
 
