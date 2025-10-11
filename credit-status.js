@@ -19,6 +19,53 @@ const CONFIG_FILE = path.join(__dirname, 'aicodemirror-config.json');
 // 禁用SSL证书验证警告
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
+
+function consoleLog(...logs) {
+  if (false) {
+    console.log(...logs);
+  }
+}
+
+
+function findMatchingRightBrace(src, start = 0) {
+  if (typeof src !== 'string') return -1;
+
+  // 找到起始的 '{'
+  let braceStart = -1;
+  for (let i = start; i < src.length; i++) {
+    if (src[i] === '{') { braceStart = i; break; }
+    // 如果你保证文本第一个字符就是 '{'，也可以直接：braceStart = start;
+  }
+  if (braceStart === -1) return -1;
+
+  let depth = 0;
+  let inString = false;
+
+  for (let i = braceStart; i < src.length; i++) {
+    const ch = src[i];
+
+    if (ch === '"') {
+      // 统计左侧连续反斜杠数量，奇数 => 本引号被转义
+      let bs = 0;
+      for (let k = i - 1; k >= 0 && src[k] === '\\'; k--) bs++;
+      const escaped = (bs % 2 === 1);
+      if (!escaped) inString = !inString;
+      continue;
+    }
+
+    if (!inString) {
+      if (ch === '{') {
+        depth++;
+      } else if (ch === '}') {
+        depth--;
+        if (depth === 0) return i; // 找到与首个 '{' 匹配的 '}'
+      }
+    }
+  }
+
+  return -1; // 未闭合
+}
+
 function loadConfig() {
     try {
         if (!fs.existsSync(CONFIG_FILE)) {
@@ -66,10 +113,10 @@ function getCredits(cookies) {
 
         const options = {
             hostname: 'www.aicodemirror.com',
-            path: '/api/user/credits',
+            path: '/dashboard/credit-packs',
             method: 'GET',
             headers: {
-                'Accept': 'application/json',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 'Cookie': cookies,
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
             },
@@ -84,21 +131,55 @@ function getCredits(cookies) {
 
             res.on('end', () => {
                 try {
-                    if (res.statusCode === 200) {
-                        const jsonData = JSON.parse(data);
-                        
-                        // 保存到缓存
-                        config[cacheKey] = {
-                            data: jsonData,
-                            timestamp: currentTime
-                        };
-                        saveConfig(config);
-                        
-                        resolve(jsonData);
-                    } else {
-                        resolve(null);
+                    consoleLog("-----------", res.statusCode, "-----------");
+                    consoleLog(data);
+                    if (res.statusCode !== 200) {
+                        throw new Error(`非200响应: ${res.statusCode}`);
                     }
+
+                    // 获取creditPacks
+                    const firstCheck = data.includes('creditPacks');
+                    consoleLog("包含 creditPacks:", firstCheck);
+                    if (firstCheck === false) {
+                        throw new Error("获取 creditPacks 失败");
+                    }
+                    const index = data.indexOf('creditPacks');
+                    const snippet = data.substring(index-3, index + 10000);
+                    consoleLog("片段:", snippet);
+
+
+                    const endIdx = findMatchingRightBrace(snippet);
+                    const matchText = snippet.substring(0, endIdx + 1);
+                    consoleLog("匹配文本:", matchText);
+// {
+//     \"creditPacks\":[
+//          {\"plan\":\"CREDIT_8K\",\"credits\":8000,\"price\":9.9,\"title\":\"8000积分补充包\",\"description\":\"适合偶尔需要额外算力的用户，一次性增加8000积分。\"},
+//          {\"plan\":\"CREDIT_25K\",\"credits\":25000,\"price\":29.9,\"title\":\"25000积分补充包\",\"description\":\"高性价比选择，应对中等规模的任务冲刺。\"},
+//          {\"plan\":\"CREDIT_42K\",\"credits\":42000,\"price\":49.9,\"title\":\"42000积分补充包\",\"description\":\"大额补充，适合高强度使用或团队协作。\"}],
+//     \"userPlan\":\"PRO\",
+//     \"creditData\":{\"current\":\"5010\",\"max\":\"8000\",\"normal\":\"5010\",\"bonus\":\"0\",\"plan\":\"PRO\",\"recoveryRate\":\"200\",\"lastRecoveryTimeFormatted\":\"2025-10-11 17:00:00\",\"dailyResets\":1,\"todayResetCount\":0,\"remainingResets\":1,\"canResetToday\":true,\"lastResetAtFormatted\":\"2025-10-10 09:54:33\"},
+//     \"weeklyUsageData\":{\"plan\":\"PRO\",\"weeklyUsed\":38438,\"weeklyLimit\":38400,\"weeklyRemaining\":0,\"weeklyUsageResetAt\":\"2025-10-08 08:00:00\",\"nextResetAt\":\"2025-10-15 08:00:00\",\"nextResetAtRelative\":\"4 天内\",\"percentage\":100,\"isFreeUser\":false}
+// }
+
+                    const correctedString = matchText.replace(/\\"/g, '"');
+                    consoleLog("Corrected String:", correctedString);
+
+                    // Now, parse the corrected string
+                    const dataObject = JSON.parse(correctedString);
+                    consoleLog("JSON Parsed Successfully:", dataObject);
+
+                    // 保存到缓存
+                    config[cacheKey] = {
+                        data: dataObject,
+                        timestamp: currentTime
+                    };
+                    saveConfig(config);
+
+                    resolve(dataObject)
+
+
                 } catch (error) {
+                    consoleLog("Error processing response:", error);
                     resolve(null);
                 }
             });
@@ -173,7 +254,7 @@ function getCurrentModel() {
         }
         return model;
     }
-    
+
     return '没有指定模型';
 }
 
@@ -271,28 +352,31 @@ function formatDisplay(data) {
     const reset = '\x1b[0m';
     
     // 构建基础部分（风格、分支和路径）
-    const stylePart = `${currentOutputStyle}`;
+    // const stylePart = `${currentOutputStyle}`;
     const branchPart = currentBranch ? `${currentBranch}(${modifiedFilesCount})` : '';
     const workspacePart = `${currentWorkspace}`;
     
     if (!data) {
         const currentModel = getCurrentModel();
-        return `${blue}🍪 需要Cookie(${currentModel})${stylePart}${branchPart}${workspacePart}${reset}`;
+        return `${blue}🍪 需要Cookie`;
     }
     
     try {
-        const credits = data.credits || 0;
-        const creditLimit = data.creditLimit || 0;
-        const plan = data.plan || 'FREE';
-        const creditsText = formatCredits(credits);
+        const dailyCurrent = data.creditData.current || 0;
+        const dailyMax = data.creditData.max || 0;
+        const dailyPercentage = dailyMax > 0 ? Math.min(100, Math.max(0, Math.round((dailyCurrent / dailyMax) * 100))): 0;
+        const weeklyUsed = data.weeklyUsageData.weeklyUsed || 0;
+        const weeklyLimit = data.weeklyUsageData.weeklyLimit || 0;
+        const weeklyPercentage = weeklyLimit > 0 ? Math.min(100, Math.max(0, Math.round((weeklyUsed / weeklyLimit) * 100))) : 0;
+        const plan = data.userPlan || 'FREE';
+        const canResetToday = data.creditData.canResetToday || false;
         const currentModel = getCurrentModel();
         
-        return `${blue}积分:${creditsText}/${creditLimit} | 订阅:${plan} | ${currentModel} | ${stylePart} | ${branchPart}${reset}\n${blue}${workspacePart}${reset}`;
-
+        return `${blue}日: ${dailyCurrent}/${dailyMax}(${dailyPercentage}%) | 周: ${weeklyUsed}/${weeklyLimit}(${weeklyPercentage}%) | 订阅:${plan} | ${currentModel}${reset}\n${blue}代码: ${branchPart} | ${workspacePart}${reset}`;
         
     } catch (error) {
         const currentModel = getCurrentModel();
-        return `${blue}🔴 数据解析失败(${currentModel})${stylePart}${branchPart}${workspacePart}${reset}`;
+        return `${blue}🔴 数据解析失败`;
     }
 }
 
@@ -317,17 +401,20 @@ async function main() {
         if (!checkAnthropicBaseUrl()) {
             const currentUrl = getDisplayUrl();
             const currentModel = getCurrentModel();
-            console.log(`${currentModel} | ${currentUrl}`);
+            consoleLog(`${currentModel} | ${currentUrl}`);
             return;
         }
         
         // 获取有效session和积分数据
         const session = getValidSession();
         let creditsData = null;
+        consoleLog("获取有效session和积分数据")
         
         if (session) {
             creditsData = await getCredits(session.cookies);
         }
+        consoleLog("获取积分数据完成")
+        consoleLog(creditsData)
         
         // 格式化并输出状态
         const statusText = formatDisplay(creditsData);

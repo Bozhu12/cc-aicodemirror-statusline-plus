@@ -61,7 +61,7 @@ function saveCookie() {
             
             if (result.includes('🍪')) {
                 console.log("❌ Cookie无效，请重新获取");
-            } else if (result.includes('积分')) {
+            } else if (result.includes('订阅')) {
                 console.log("✅ 测试成功！");
                 console.log("🎉 现在重启Claude Code即可看到状态栏积分显示");
             } else {
