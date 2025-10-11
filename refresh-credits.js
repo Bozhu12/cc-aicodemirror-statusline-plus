@@ -21,7 +21,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 function checkAndTriggerReset(config, creditsData) {
     // 初始化默认配置
     if (!config.creditThreshold) config.creditThreshold = 1000;
-    if (!config.hasOwnProperty('autoResetEnabled')) config.autoResetEnabled = true;
+    if (!config.hasOwnProperty('autoResetEnabled')) config.autoResetEnabled = false;
 
     // 检查是否启用自动重置
     if (!config.autoResetEnabled) return;

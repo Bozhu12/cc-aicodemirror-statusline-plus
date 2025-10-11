@@ -122,16 +122,6 @@ function formatCredits(credits) {
     return credits.toString();
 }
 
-function getPlanIcon(plan) {
-    const planIcons = {
-        'ULTRA': '👑',
-        'MAX': '💎',
-        'PRO': '⭐',
-        'FREE': '🆓'
-    };
-    return planIcons[plan] || '❓';
-}
-
 
 function getDisplayUrl() {
     const baseUrl = process.env.ANTHROPIC_BASE_URL || '';
@@ -184,12 +174,7 @@ function getCurrentModel() {
         return model;
     }
     
-    // 根据当前环境推断默认模型
-    const baseUrl = process.env.ANTHROPIC_BASE_URL || '';
-    if (baseUrl.includes('aicodemirror.com')) {
-        return 'Claude 4 Sonnet';
-    }
-    return 'Claude (Auto)';
+    return '没有指定模型';
 }
 
 function getCurrentOutputStyle() {
@@ -286,9 +271,9 @@ function formatDisplay(data) {
     const reset = '\x1b[0m';
     
     // 构建基础部分（风格、分支和路径）
-    const stylePart = ` | ${currentOutputStyle}`;
-    const branchPart = currentBranch ? ` | ${currentBranch}(${modifiedFilesCount})` : '';
-    const workspacePart = ` | ${currentWorkspace}`;
+    const stylePart = `${currentOutputStyle}`;
+    const branchPart = currentBranch ? `${currentBranch}(${modifiedFilesCount})` : '';
+    const workspacePart = `${currentWorkspace}`;
     
     if (!data) {
         const currentModel = getCurrentModel();
@@ -297,12 +282,13 @@ function formatDisplay(data) {
     
     try {
         const credits = data.credits || 0;
+        const creditLimit = data.creditLimit || 0;
         const plan = data.plan || 'FREE';
         const creditsText = formatCredits(credits);
-        const planIcon = getPlanIcon(plan);
         const currentModel = getCurrentModel();
         
-        return `${blue}${planIcon} ${creditsText}(${currentModel})${stylePart}${branchPart}${workspacePart}${reset}`;
+        return `${blue}积分:${creditsText}/${creditLimit} | 订阅:${plan} | ${currentModel} | ${stylePart} | ${branchPart}${reset}\n${blue}${workspacePart}${reset}`;
+
         
     } catch (error) {
         const currentModel = getCurrentModel();
