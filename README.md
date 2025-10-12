@@ -15,14 +15,24 @@
 
 ## 📦 安装步骤
 
-### 1. 从 GitHub 拉取代码到 .claude 根目录
+### 1. 从 GitHub 拉取代码
 
+#### Windows 系统：
+```bash
+# 进入 Claude Code 配置目录
+cd %USERPROFILE%\.claude
+
+# 从 GitHub 拉取项目代码到子目录
+git clone https://github.com/Bozhu12/cc-aicodemirror-statusline-plus.git .
+```
+
+#### Linux/macOS 系统：
 ```bash
 # 进入 Claude Code 配置目录
 cd ~/.claude
 
-# 从 GitHub 拉取项目代码
-git clone https://github.com/your-repo/cc-aicodemirror-statusline-plus.git .
+# 从 GitHub 拉取项目代码到子目录
+git clone https://github.com/Bozhu12/cc-aicodemirror-statusline-plus.git .
 ```
 
 ### 2. 配置 settings.json
@@ -121,9 +131,17 @@ node save-cookie.js "你的Cookie字符串"
 ## 📊 状态栏显示格式示例
 
 ```
-日: 5210/8000(65%) | 周: 38438/38400(100%) | 订阅:PRO | Claude 4 Sonnet
-代码: main(3) | /Users/username/project
+💎 37288/31167 (sonnet) | default | main(4) | C:\Users\username\project
 ```
+
+**格式说明：**
+- `💎` - 订阅计划图标（👑=ULTRA, 💎=MAX, ⭐=PRO, 🆓=FREE）
+- `37288` - 当前可用积分（包含今日可重置的积分）
+- `31167` - 本周剩余积分额度
+- `(sonnet)` - 当前模型（haiku/sonnet/opus/auto）
+- `default` - 当前输出样式
+- `simple(4)` - Git 分支名(修改文件数)
+- 最后是当前工作目录路径
 
 
 ## 🔧 配置文件说明
@@ -135,23 +153,56 @@ node save-cookie.js "你的Cookie字符串"
 ```json
 {
   "cookies": "你的Cookie字符串",
+  "creditThreshold": 1000,
+  "autoResetEnabled": false,
   "credits_cache": {
     "data": {
-      "userId": 1001489,
-      "email": null,
-      "credits": 14661,
-      "plan": "MAX"
+      "userPlan": "MAX",
+      "creditData": {
+        "current": "17288",
+        "max": "20000",
+        "normal": "17288",
+        "bonus": "0",
+        "plan": "MAX",
+        "recoveryRate": "500",
+        "lastRecoveryTimeFormatted": "2025-10-12 14:00:00",
+        "dailyResets": 1,
+        "todayResetCount": 0,
+        "remainingResets": 1,
+        "canResetToday": true,
+        "lastResetAtFormatted": "2025-10-11 16:06:46"
+      },
+      "weeklyUsageData": {
+        "plan": "MAX",
+        "weeklyUsed": 64638,
+        "weeklyLimit": 96000,
+        "weeklyRemaining": 31362,
+        "weeklyUsageResetAt": "2025-10-08 08:00:00",
+        "nextResetAt": "2025-10-15 08:00:00",
+        "nextResetAtRelative": "3 天内",
+        "percentage": 67,
+        "isFreeUser": false
+      }
     },
-    "timestamp": 1755704131.115
-  },
-  "creditThreshold": 1000,
-  "autoResetEnabled": false
+    "timestamp": 1760249994.282
+  }
 }
 ```
 
-**新增配置说明：**
-- `creditThreshold`: 积分重置触发阈值，当积分低于此值时触发重置（默认：1000）
+**配置字段说明：**
+- `cookies`: aicodemirror.com 的认证 Cookie
+- `creditThreshold`: 积分重置触发阈值（默认：1000）
 - `autoResetEnabled`: 是否启用自动积分重置功能（默认：false）
+- `credits_cache`: 积分缓存数据（30秒缓存）
+  - `userPlan`: 用户订阅计划（ULTRA/MAX/PRO/FREE）
+  - `creditData`: 每日积分详细信息
+    - `current`: 当前剩余积分
+    - `max`: 每日积分上限
+    - `canResetToday`: 今日是否可重置积分
+  - `weeklyUsageData`: 每周使用额度数据
+    - `weeklyUsed`: 本周已使用积分
+    - `weeklyLimit`: 每周积分限额
+    - `weeklyRemaining`: 本周剩余积分
 
 ### 环境变量支持
 
@@ -166,20 +217,21 @@ node save-cookie.js "你的Cookie字符串"
 
 ### 触发条件
 积分重置**仅在以下条件同时满足时触发**：
-1. **功能启用**：`autoResetEnabled` 为 `false`（默认关闭）
-2. **积分不足**：当前积分 < 设定阈值（默认100）
+1. **功能启用**：`autoResetEnabled` 为 `true`（默认为 false，即关闭状态）
+2. **积分不足**：当前积分 < 设定阈值（默认 1000）
 3. **会话结束**：Claude Code 停止对话时（Hook Stop 触发）
 
 ### 配置管理
 ```json
 {
-  "creditThreshold": 100,      // 触发阈值，可自定义
-  "autoResetEnabled": true      // 功能开关，可随时关闭
+  "creditThreshold": 1000,      // 触发阈值，可自定义
+  "autoResetEnabled": true       // 功能开关，设为 true 启用，false 关闭
 }
 ```
 
+**启用功能**：设置 `autoResetEnabled: true`
 **调整阈值**：修改 `creditThreshold` 值，比如设为 `500` 或 `2000`
-**禁用功能**：设置 `autoResetEnabled: false`
+**禁用功能**：设置 `autoResetEnabled: false`（默认值）
 
 ### 安全特性
 - **静默执行**：不产生任何输出，不影响状态栏显示
@@ -197,23 +249,320 @@ node save-cookie.js "你的Cookie字符串"
 
 ### credit-status.js
 主要状态栏脚本，负责：
-- 获取积分信息
+- 获取积分信息（支持 30 秒缓存机制）
 - 检测当前模型和配置
-- 显示 Git 状态
-- 格式化输出信息
+- 调用 display-formatter.js 格式化输出
+- 支持调试模式（使用 `--debug` 或 `-d` 参数）
+
+**调试模式**：
+```bash
+# 测试状态栏显示并查看详细日志
+node credit-status.js --debug
+```
+
+### display-formatter.js
+状态栏显示格式化核心模块，负责：
+- 格式化状态栏显示信息
+- 获取当前模型（优先级：环境变量 > settings.json）
+- 获取当前输出样式（支持多级配置文件查找）
+- 获取 Git 分支和修改文件数
+- 计算实际可用积分（包含今日可重置的积分）
+- 提供订阅计划图标映射
+
+**积分计算逻辑**：
+- 如果 `canResetToday` 为 `true`，显示的可用积分 = current + max
+- 否则，显示的可用积分 = current
 
 ### save-cookie.js
 Cookie 保存工具，提供：
 - 简单的命令行界面
 - Cookie 验证测试
 - 配置文件管理
+- 自动调用 credit-status.js 进行测试验证
 
 ### refresh-credits.js
-积分刷新脚本，用于：
+积分刷新脚本（Stop Hook），用于：
 - 会话结束时强制刷新积分缓存
-- 积分不足时自动触发重置机制
+- 积分不足时自动触发重置机制（需启用 autoResetEnabled）
 - 静默执行，不影响状态栏显示
-- 作为 stopHook 使用
+- 仅在 ANTHROPIC_BASE_URL 包含 aicodemirror.com 时运行
+
+## 🎨 自定义状态栏格式
+
+### formatDisplay 函数工作原理
+
+`display-formatter.js` 中的 `formatDisplay()` 函数负责生成状态栏的最终显示文本。该函数在 `credit-status.js` 中被调用：
+
+```javascript
+// credit-status.js 调用流程
+await getCredits(session.cookies);  // 获取并缓存积分数据
+console.log(formatDisplay());        // 输出格式化结果到状态栏
+```
+
+### buildSeparatedString 辅助方法
+
+`display-formatter.js` 提供了一个辅助方法用于智能构建带分隔符的字符串：
+
+```javascript
+/**
+ * 构建带分隔符的字符串，自动忽略空白部分
+ * @param {Array<string>} parts 需要连接的部分
+ * @param {string} separator 分隔符，默认为 ' | '
+ * @returns {string} 连接后的字符串
+ */
+function buildSeparatedString(parts, separator = ' | ')
+```
+
+**使用示例**：
+```javascript
+// 自动过滤空字符串，只在非空部分之间添加分隔符
+buildSeparatedString(['A', '', 'C', 'D'])  // 返回: "A | C | D"
+buildSeparatedString(['A', 'B'], ' - ')     // 返回: "A - B"
+```
+
+### 可用的数据字段
+
+在 `formatDisplay()` 函数中，你可以使用以下数据：
+
+#### 从缓存获取的积分数据 (`data.creditData`)：
+```javascript
+const dailyCurrent = data.creditData.current || 0;           // 当前剩余积分
+const dailyMax = data.creditData.max || 0;                   // 每日积分上限
+const canResetToday = data.creditData.canResetToday || false;// 今日是否可重置
+const recoveryRate = data.creditData.recoveryRate || 0;      // 积分恢复速率
+const remainingResets = data.creditData.remainingResets || 0;// 剩余重置次数
+```
+
+#### 从缓存获取的周额度数据 (`data.weeklyUsageData`)：
+```javascript
+const weeklyUsed = data.weeklyUsageData.weeklyUsed || 0;       // 本周已使用
+const weeklyLimit = data.weeklyUsageData.weeklyLimit || 0;     // 每周限额
+const weeklyRemaining = data.weeklyUsageData.weeklyRemaining || 0; // 本周剩余
+const weeklyPercentage = data.weeklyUsageData.percentage || 0; // 使用百分比
+```
+
+#### 订阅计划信息：
+```javascript
+const plan = data.userPlan || 'FREE';        // ULTRA/MAX/PRO/FREE
+const planIcon = getPlanIcon(data.userPlan); // 👑/💎/⭐/🆓
+```
+
+#### 辅助函数获取的信息：
+```javascript
+const currentModel = getCurrentModel();           // haiku/sonnet/opus/auto
+const currentOutputStyle = getCurrentOutputStyle(); // 输出样式名称
+const currentBranch = getCurrentBranch();         // Git 分支名
+const modifiedFilesCount = getModifiedFilesCount(); // 修改文件数
+const currentWorkspace = getCurrentWorkspace();   // 当前工作目录
+```
+
+### 当前默认格式
+
+```javascript
+// display-formatter.js 第 88-97 行
+// 构建状态栏信息，自动过滤空白部分
+const infoParts = buildSeparatedString([
+    `${planIcon} ${realDailyCurrent}/${weeklyLimit-weeklyUsed} (${currentModel})`,
+    stylePart,
+    branchPart,
+    workspacePart
+]);
+
+// 返回格式化后的状态栏显示字符串
+return `${blue}${infoParts}${reset}`;
+```
+
+**输出示例**: `💎 37288/31167 (sonnet) | default | main(4) | C:\Users\username\project`
+
+**智能过滤特性**：使用 `buildSeparatedString()` 辅助方法自动过滤空白部分，当 `stylePart` 或 `branchPart` 为空时，会自动去除对应的 `|` 分隔符。
+
+### 自定义格式示例
+
+#### 示例 1：紧凑版（只显示关键信息）
+
+```javascript
+// 修改 display-formatter.js 第 88-97 行为：
+const infoParts = buildSeparatedString([
+    `${planIcon} ${realDailyCurrent}`,
+    currentModel,
+    branchPart
+]);
+return `${blue}${infoParts}${reset}`;
+```
+**输出**: `💎 37288 | sonnet | main(4)`
+
+#### 示例 2：详细版（包含百分比和周剩余）
+
+```javascript
+// 在第 88 行之前添加百分比计算：
+const dailyPercent = dailyMax > 0 ? Math.round((realDailyCurrent / (dailyMax * (canResetToday ? 2 : 1))) * 100) : 0;
+
+// 修改第 88-97 行为：
+const infoParts = buildSeparatedString([
+    `${planIcon} 日:${dailyPercent}%`,
+    `周:${weeklyRemaining}/${weeklyLimit}`,
+    currentModel,
+    branchPart,
+    workspacePart
+]);
+return `${blue}${infoParts}${reset}`;
+```
+**输出**: `💎 日:93% | 周:31167/96000 | sonnet | main(4) | C:\Users\username\project`
+
+#### 示例 3：极简版（仅积分和模型）
+
+```javascript
+// 修改 display-formatter.js 第 88-97 行为：
+return `${blue}${realDailyCurrent}/${weeklyRemaining} ${currentModel}${reset}`;
+```
+**输出**: `37288/31167 sonnet`
+
+#### 示例 4：多彩版（使用不同颜色）
+
+```javascript
+// 在 formatDisplay() 函数开头添加更多颜色定义
+const blue = '\x1b[34m';
+const green = '\x1b[32m';
+const yellow = '\x1b[33m';
+const cyan = '\x1b[36m';
+const reset = '\x1b[0m';
+
+// 修改第 88-97 行为：
+const infoParts = buildSeparatedString([
+    `${blue}${planIcon} ${green}${realDailyCurrent}${reset}/${yellow}${weeklyRemaining}${reset}`,
+    `${cyan}(${currentModel})${reset}`,
+    branchPart
+]);
+return infoParts;  // 注意：颜色已在各部分中设置，无需外层包裹
+```
+**输出**: `💎 37288/31167 (sonnet) | main(4)` (带颜色)
+
+#### 示例 5：自定义分隔符
+
+```javascript
+// 修改 display-formatter.js 第 88-97 行为：
+// 使用不同的分隔符（如空格或箭头）
+const infoParts = buildSeparatedString([
+    `${planIcon} ${realDailyCurrent}/${weeklyRemaining}`,
+    currentModel,
+    branchPart,
+    workspacePart
+], ' → ');  // 自定义分隔符
+return `${blue}${infoParts}${reset}`;
+```
+**输出**: `💎 37288/31167 → sonnet → main(4) → C:\Users\username\project`
+
+### ANSI 颜色代码参考
+
+```javascript
+// 文字颜色
+const black   = '\x1b[30m';
+const red     = '\x1b[31m';
+const green   = '\x1b[32m';
+const yellow  = '\x1b[33m';
+const blue    = '\x1b[34m';
+const magenta = '\x1b[35m';
+const cyan    = '\x1b[36m';
+const white   = '\x1b[37m';
+
+// 背景颜色
+const bgRed   = '\x1b[41m';
+const bgGreen = '\x1b[42m';
+
+// 样式
+const bold    = '\x1b[1m';
+const dim     = '\x1b[2m';
+const reset   = '\x1b[0m'; // 重置所有样式
+```
+
+### 修改步骤
+
+1. **编辑文件**：
+   ```bash
+   # Windows
+   notepad %USERPROFILE%\.claude\cc-aicodemirror-statusline-plus\display-formatter.js
+
+   # Linux/macOS
+   nano ~/.claude/cc-aicodemirror-statusline-plus/display-formatter.js
+   ```
+
+2. **找到第 88-97 行**（`formatDisplay()` 函数中构建状态栏信息的部分）
+
+3. **替换为你的自定义格式**
+   - 可以直接修改 `buildSeparatedString()` 中的数组元素
+   - 也可以完全替换为自己的格式化逻辑
+
+4. **测试修改**：
+   ```bash
+   # Windows
+   cd %USERPROFILE%\.claude\cc-aicodemirror-statusline-plus
+   node credit-status.js
+
+   # Linux/macOS
+   cd ~/.claude/cc-aicodemirror-statusline-plus
+   node credit-status.js
+   ```
+
+5. **查看实时效果**：重启 Claude Code 或等待状态栏刷新
+
+### 高级自定义：添加新字段
+
+如果你想添加更多信息，可以在 `formatDisplay()` 函数中计算新的值：
+
+```javascript
+// 在第 88 行之前添加自定义计算
+const dailyUsed = dailyMax - dailyCurrent;                    // 今日已用
+const dailyUsedPercent = Math.round((dailyUsed / dailyMax) * 100); // 今日使用率
+const resetInfo = canResetToday ? '🔄' : '';                   // 可重置标记
+const timeInfo = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }); // 当前时间
+
+// 使用这些新字段
+const infoParts = buildSeparatedString([
+    `${planIcon}${resetInfo} ${realDailyCurrent} (用${dailyUsedPercent}%)`,
+    currentModel,
+    timeInfo
+]);
+return `${blue}${infoParts}${reset}`;
+```
+**输出**: `💎🔄 37288 (用7%) | sonnet | 14:30`
+
+### 条件格式化
+
+你可以根据积分余量使用不同的显示样式：
+
+```javascript
+// 在第 88 行之前，根据剩余积分选择颜色
+const green = '\x1b[32m';
+const yellow = '\x1b[33m';
+const red = '\x1b[31m';
+const reset = '\x1b[0m';
+
+let creditColor = green;  // 充足
+if (realDailyCurrent < 5000) creditColor = yellow;  // 警告
+if (realDailyCurrent < 2000) creditColor = red;     // 危险
+
+// 使用条件颜色
+const infoParts = buildSeparatedString([
+    `${creditColor}${planIcon} ${realDailyCurrent}${reset}/${weeklyRemaining}`,
+    currentModel,
+    branchPart
+]);
+return infoParts;
+```
+
+### 调试技巧
+
+在修改过程中，可以使用 `console.error()` 输出调试信息（不会影响状态栏显示）：
+
+```javascript
+console.error('调试信息 - 当前积分:', realDailyCurrent);
+console.error('调试信息 - 周剩余:', weeklyRemaining);
+```
+
+然后运行：
+```bash
+node credit-status.js 2> debug.log  # 调试信息会写入 debug.log
+```
 
 ## 🔍 故障排除
 
@@ -221,16 +570,28 @@ Cookie 保存工具，提供：
 
 **检查项目：**
 - 确认 `ANTHROPIC_BASE_URL` 包含 `aicodemirror.com`
-- 检查配置文件是否存在：`~/.claude/aicodemirror-config.json`
+- 检查配置文件是否存在
 - 验证 Cookie 是否有效（重新获取）
 
 **解决方法：**
+
+**Windows 系统：**
 ```bash
 # 检查配置文件
-cat ~/.claude/aicodemirror-config.json
+type %USERPROFILE%\.claude\cc-aicodemirror-statusline-plus\aicodemirror-config.json
 
 # 重新测试 Cookie
-cd ~/.claude
+cd %USERPROFILE%\.claude\cc-aicodemirror-statusline-plus
+node save-cookie.js "新的Cookie字符串"
+```
+
+**Linux/macOS 系统：**
+```bash
+# 检查配置文件
+cat ~/.claude/cc-aicodemirror-statusline-plus/aicodemirror-config.json
+
+# 重新测试 Cookie
+cd ~/.claude/cc-aicodemirror-statusline-plus
 node save-cookie.js "新的Cookie字符串"
 ```
 
@@ -252,8 +613,13 @@ node save-cookie.js "新的Cookie字符串"
 
 **解决方法：**
 ```bash
+# 使用调试模式查看详细错误信息
+cd %USERPROFILE%\.claude\cc-aicodemirror-statusline-plus    # Windows
+cd ~/.claude/cc-aicodemirror-statusline-plus                 # Linux/macOS
+node credit-status.js --debug
+
 # 手动测试网络连接
-curl -H "Cookie: 你的Cookie" https://www.aicodemirror.com/api/user/credits
+curl -H "Cookie: 你的Cookie" https://www.aicodemirror.com/dashboard/credit-packs
 
 # 重新获取Cookie
 node save-cookie.js "新Cookie"
@@ -277,9 +643,20 @@ git init
 **检查优先级：**
 1. 环境变量 `ANTHROPIC_MODEL`
 2. `~/.claude/settings.json` 中的 `model` 字段
-3. 根据 `ANTHROPIC_BASE_URL` 推断
+3. 默认显示 `auto`
 
 **解决方法：**
+
+**Windows 系统：**
+```bash
+# 检查环境变量
+echo %ANTHROPIC_MODEL%
+
+# 检查配置文件
+type %USERPROFILE%\.claude\settings.json | findstr model
+```
+
+**Linux/macOS 系统：**
 ```bash
 # 检查环境变量
 echo $ANTHROPIC_MODEL
