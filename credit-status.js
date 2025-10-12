@@ -19,9 +19,12 @@ const CONFIG_FILE = path.join(__dirname, 'aicodemirror-config.json');
 // 禁用SSL证书验证警告
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
+// 检查是否开启调试模式
+// node credit-status.js -d
+const DEBUG_MODE = process.argv.includes('--debug') || process.argv.includes('-d') || process.env.DEBUG === 'true';
 
 function consoleLog(...logs) {
-  if (false) {
+  if (DEBUG_MODE) {
     console.log(...logs);
   }
 }
@@ -132,17 +135,13 @@ function getCredits(cookies) {
             res.on('end', () => {
                 try {
                     consoleLog("-----------", res.statusCode, "-----------");
-                    consoleLog(data);
-                    if (res.statusCode !== 200) {
-                        throw new Error(`非200响应: ${res.statusCode}`);
-                    }
+                    // consoleLog(data);
+                    if (res.statusCode !== 200) throw new Error(`非200响应: ${res.statusCode}`);
 
                     // 获取creditPacks
                     const firstCheck = data.includes('creditPacks');
                     consoleLog("包含 creditPacks:", firstCheck);
-                    if (firstCheck === false) {
-                        throw new Error("获取 creditPacks 失败");
-                    }
+                    if (firstCheck === false) throw new Error("获取 creditPacks 失败");
                     const index = data.indexOf('creditPacks');
                     const snippet = data.substring(index-3, index + 10000);
                     consoleLog("片段:", snippet);
@@ -151,31 +150,26 @@ function getCredits(cookies) {
                     const endIdx = findMatchingRightBrace(snippet);
                     const matchText = snippet.substring(0, endIdx + 1);
                     consoleLog("匹配文本:", matchText);
-// {
-//     \"creditPacks\":[
-//          {\"plan\":\"CREDIT_8K\",\"credits\":8000,\"price\":9.9,\"title\":\"8000积分补充包\",\"description\":\"适合偶尔需要额外算力的用户，一次性增加8000积分。\"},
-//          {\"plan\":\"CREDIT_25K\",\"credits\":25000,\"price\":29.9,\"title\":\"25000积分补充包\",\"description\":\"高性价比选择，应对中等规模的任务冲刺。\"},
-//          {\"plan\":\"CREDIT_42K\",\"credits\":42000,\"price\":49.9,\"title\":\"42000积分补充包\",\"description\":\"大额补充，适合高强度使用或团队协作。\"}],
-//     \"userPlan\":\"PRO\",
-//     \"creditData\":{\"current\":\"5010\",\"max\":\"8000\",\"normal\":\"5010\",\"bonus\":\"0\",\"plan\":\"PRO\",\"recoveryRate\":\"200\",\"lastRecoveryTimeFormatted\":\"2025-10-11 17:00:00\",\"dailyResets\":1,\"todayResetCount\":0,\"remainingResets\":1,\"canResetToday\":true,\"lastResetAtFormatted\":\"2025-10-10 09:54:33\"},
-//     \"weeklyUsageData\":{\"plan\":\"PRO\",\"weeklyUsed\":38438,\"weeklyLimit\":38400,\"weeklyRemaining\":0,\"weeklyUsageResetAt\":\"2025-10-08 08:00:00\",\"nextResetAt\":\"2025-10-15 08:00:00\",\"nextResetAtRelative\":\"4 天内\",\"percentage\":100,\"isFreeUser\":false}
-// }
 
                     const correctedString = matchText.replace(/\\"/g, '"');
-                    consoleLog("Corrected String:", correctedString);
+                    // consoleLog("Corrected String:", correctedString);
 
                     // Now, parse the corrected string
                     const dataObject = JSON.parse(correctedString);
-                    consoleLog("JSON Parsed Successfully:", dataObject);
+                    // consoleLog("JSON Parsed Successfully:", dataObject);
 
-                    // 保存到缓存
+                    // 过滤掉 creditPacks 数组以减少缓存大小，避免空指针
+                    const { creditPacks, ...filteredData } = dataObject || {};
+                    consoleLog("Filtered Data (creditPacks removed):", filteredData);
+
+                    // 保存到缓存（使用过滤后的数据）
                     config[cacheKey] = {
-                        data: dataObject,
+                        data: filteredData,
                         timestamp: currentTime
                     };
                     saveConfig(config);
 
-                    resolve(dataObject)
+                    resolve(filteredData)
 
 
                 } catch (error) {
@@ -222,7 +216,7 @@ function getDisplayUrl() {
 function getCurrentModel() {
     // 优先使用环境变量
     let model = process.env.ANTHROPIC_MODEL || '';
-    
+
     // 如果环境变量没有，检查settings.json
     if (!model) {
         try {
@@ -235,7 +229,7 @@ function getCurrentModel() {
             // 忽略错误
         }
     }
-    
+
     if (model) {
         if (model.toLowerCase().includes('claude-3')) {
             if (model.toLowerCase().includes('haiku')) {
@@ -264,19 +258,19 @@ function getCurrentOutputStyle() {
         if (process.env.CLAUDE_OUTPUT_STYLE) {
             return process.env.CLAUDE_OUTPUT_STYLE;
         }
-        
+
         // 检查多个可能的配置文件位置 (按优先级排序)
         const configPaths = [
             // 1. 当前工作区的 settings.local.json (优先级最高)
             path.join(process.cwd(), '.claude', 'settings.local.json'),
-            // 2. 用户根目录的 settings.local.json  
+            // 2. 用户根目录的 settings.local.json
             path.join(os.homedir(), '.claude', 'settings.local.json'),
             // 3. 当前工作区的 settings.json
             path.join(process.cwd(), '.claude', 'settings.json'),
             // 4. 用户根目录的 settings.json (兜底)
             path.join(os.homedir(), '.claude', 'settings.json')
         ];
-        
+
         for (const configPath of configPaths) {
             if (fs.existsSync(configPath)) {
                 const settings = JSON.parse(fs.readFileSync(configPath, 'utf8'));
@@ -285,9 +279,9 @@ function getCurrentOutputStyle() {
                 }
             }
         }
-        
+
         return 'default';
-        
+
     } catch (error) {
         // 忽略错误
     }
@@ -297,8 +291,8 @@ function getCurrentOutputStyle() {
 function getCurrentBranch() {
     try {
         const { execSync } = require('child_process');
-        const branch = execSync('git branch --show-current', { 
-            encoding: 'utf8', 
+        const branch = execSync('git branch --show-current', {
+            encoding: 'utf8',
             stdio: 'pipe',
             timeout: 2000
         }).trim();
@@ -311,18 +305,18 @@ function getCurrentBranch() {
 function getModifiedFilesCount() {
     try {
         const { execSync } = require('child_process');
-        
+
         // 使用 git status --porcelain 来获取工作区状态
-        const statusOutput = execSync('git status --porcelain', { 
-            encoding: 'utf8', 
+        const statusOutput = execSync('git status --porcelain', {
+            encoding: 'utf8',
             stdio: 'pipe',
             timeout: 2000
         }).trim();
-        
+
         if (!statusOutput) {
             return 0;
         }
-        
+
         // 计算有变化的文件数量（排除空行）
         const files = statusOutput.split('\n').filter(line => line.trim());
         return files.length;
@@ -346,21 +340,21 @@ function formatDisplay(data) {
     const modifiedFilesCount = getModifiedFilesCount();
     const currentWorkspace = getCurrentWorkspace();
     const currentOutputStyle = getCurrentOutputStyle();
-    
+
     // ANSI颜色代码：蓝色
     const blue = '\x1b[34m';
     const reset = '\x1b[0m';
-    
+
     // 构建基础部分（风格、分支和路径）
     // const stylePart = `${currentOutputStyle}`;
     const branchPart = currentBranch ? `${currentBranch}(${modifiedFilesCount})` : '';
     const workspacePart = `${currentWorkspace}`;
-    
+
     if (!data) {
         const currentModel = getCurrentModel();
         return `${blue}🍪 需要Cookie`;
     }
-    
+
     try {
         const dailyCurrent = data.creditData.current || 0;
         const dailyMax = data.creditData.max || 0;
@@ -371,9 +365,9 @@ function formatDisplay(data) {
         const plan = data.userPlan || 'FREE';
         const canResetToday = data.creditData.canResetToday || false;
         const currentModel = getCurrentModel();
-        
+
         return `${blue}日: ${dailyCurrent}/${dailyMax}(${dailyPercentage}%) | 周: ${weeklyUsed}/${weeklyLimit}(${weeklyPercentage}%) | 订阅:${plan} | ${currentModel}${reset}\n${blue}代码: ${branchPart} | ${workspacePart}${reset}`;
-        
+
     } catch (error) {
         const currentModel = getCurrentModel();
         return `${blue}🔴 数据解析失败`;
@@ -382,11 +376,11 @@ function formatDisplay(data) {
 
 function getValidSession() {
     const config = loadConfig();
-    
+
     if (config.cookies) {
         return { cookies: config.cookies };
     }
-    
+
     return null;
 }
 
@@ -404,22 +398,22 @@ async function main() {
             consoleLog(`${currentModel} | ${currentUrl}`);
             return;
         }
-        
+
         // 获取有效session和积分数据
         const session = getValidSession();
         let creditsData = null;
         consoleLog("获取有效session和积分数据")
-        
+
         if (session) {
             creditsData = await getCredits(session.cookies);
         }
         consoleLog("获取积分数据完成")
         consoleLog(creditsData)
-        
+
         // 格式化并输出状态
         const statusText = formatDisplay(creditsData);
         console.log(statusText);
-        
+
     } catch (error) {
         // 即使出错也显示基本信息
         const currentUrl = getDisplayUrl();

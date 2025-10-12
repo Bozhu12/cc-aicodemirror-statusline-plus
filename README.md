@@ -288,16 +288,6 @@ echo $ANTHROPIC_MODEL
 cat ~/.claude/settings.json | grep model
 ```
 
-## 🔄 更新 Cookie
-
-当 Cookie 过期时（通常每隔一段时间），你需要重新获取：
-
-1. 浏览器重新登录 aicodemirror.com
-2. 按 F12 -> Network -> 刷新 -> 找到 `/dashboard` 请求
-3. 复制新的 Cookie 值
-4. 运行：`node save-cookie.js "新的Cookie字符串"`
-5. 重启 Claude Code
-
 ## 📝 注意事项
 
 1. **隐私安全**：Cookie 包含认证信息，请妥善保管，不要分享给他人
