@@ -1,14 +1,36 @@
 {
-  "cookies": "__Secure-authjs.callback-url=https%3A%2F%2Fwww.aicodemirror.com%2Flogin; __Secure-authjs.session-token=eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0DLUhTNTEyIiwia2lkIjoidHJpaENuTkRQc3JoMDh6ZURKQ1FjVzRRTFFtanhuaGhyZGFMRGIyT05EbDR6enlGTERJcGgyZVE3dGRvc295dzRIYzA2emI2QWVxVmVTYUpxX0ZmaFEifQ..de8q6ONWtqW5Z5JvMMnZpQ.3Fmbz0dttGu7srgtv-1NQ7r6kQJck3cDdQRbMz4OngRKcOt-RPTPdMdqZSI9AzpIWqFKVOTOuQvxSuRwXfIeua217Ys8umz_OOH44QiDguTS_Tec--PshGjZrt3HxMCReOqsDOb4Ns-w7FVcuoxbZJ1IVKZCAXdz8ZdxqzlN7e0BPSS7vSQeoyQAt-pIdip4jOTQTy_pdWZQDoOgFST4QrOqY_Wguccz-CzN6U-zgz2qny6gSFQ-OP5rZtvkXJE5H-x4FBySNxWRWRfMxki16vlmd25dMzjOyjeAtz0m0GgjOF1SyYxCxyJRxuxJxT7BQpYMxc8Jv7Y2pPU9FnFMA_oFHWv2ZwRDJk0DNh-rnf-N0G7ZWEYzxWa2q-59Y5lkDJEyHIonx1sZi0-4JFnju3GjveAKDnmZpq5a5o9NjXx-HjiIrchK7EVWiI8jPWi23CCxzDftHD4aBSZ4gE1gnPSmF3qm3S5go0CenL4C-9t2m75wsMMmT0gatfURSltCi0GsLChzFGNZVr0M84RazQ.qMueyISkBbXmsrgeY248Ud08TVa3MbOHJ",
+  "cookies": "__Host-authjs.csrf-token=xxxxxxxxxxxx%7Ce326baef486d23acf30d297f29b61f1cafbbf28e15f018a461e00f815f501182; __Secure-authjs.callback-url=https%3A%2F%2Fwww.aicodemirror.com; acw_tc=3ccdc14817602370686282813e5d064dff15f595f6b299d6c472a6651ad43c; __Secure-authjs.session-token=eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidHJpaENuTkRQc3JoMDh6ZURKQ1FjVzRRTFFtanhuaGhyZGFMRGIyT05EbDR6enlGTERJcGgyZVE3dGRvc295dzRIYzA2emI2QWVxVmVTYUpxX0ZmaFEifQ..QqMQ7Z9sLhb3t7UE8UBahA.LmeAfqq_tlq4ihfSO1jURh6U3BuMYpnS-_UCGirvMYYotPdXrLTTbWHoFdrNezLh5baouNp2U4o61P3bthC8K5AC7KiV-bbedQAasTA0z8e5C3XeYHbp0GhLwRgE1cvztlCozM4k8R-jirurudrqnS7xREvI0GO2fn2As5rwr9ST7Q2H7Ysisoypbg8EbGzwMZXhmBbt5xU0V3uAj0TgmQ7_mPxhb3T-f6NjVyWdXqsTvrXObniNnafJZQ5mhMgVcRfOcw90WnQHbgPuyGA2gzw2yHV9dZV9nqdccsPxU9n7uz_F9X339pDuTFO36A_uRk30ayAv1kJochBuJSUHaiJ1rbTpE8tWrBRqYiWuCkumS2uM7z4fYFnrJ4aQWzV6LcUIPfiT9buiIv4-7NheM6mdK_idyCiKONdws8qlKnLU_PsQV5LKwPqOiV-U3XvJcy4Idurfs0CqcGFZrcxoBlFQ0QbMq0bd-c2ZhvzVlcGTc7t2eDihdtCXpJ5jhNBKOGarOXHyqAw16FMeaJTw0w.w4JEiEx0e8_l4rj4kTFy9BkxyjIVmbJh8Yl4M5NV7es",
+  "creditThreshold": 1000,
+  "autoResetEnabled": false,
   "credits_cache": {
     "data": {
-      "userId": 1001489,
-      "email": null,
-      "credits": 14661,
-      "plan": "MAX"
+      "userPlan": "MAX",
+      "creditData": {
+        "current": "15284",
+        "max": "20000",
+        "normal": "15284",
+        "bonus": "0",
+        "plan": "MAX",
+        "recoveryRate": "500",
+        "lastRecoveryTimeFormatted": "2025-10-12 14:00:00",
+        "dailyResets": 1,
+        "todayResetCount": 0,
+        "remainingResets": 1,
+        "canResetToday": true,
+        "lastResetAtFormatted": "2025-10-11 16:06:46"
+      },
+      "weeklyUsageData": {
+        "plan": "MAX",
+        "weeklyUsed": 66767,
+        "weeklyLimit": 96000,
+        "weeklyRemaining": 29233,
+        "weeklyUsageResetAt": "2025-10-08 08:00:00",
+        "nextResetAt": "2025-10-15 08:00:00",
+        "nextResetAtRelative": "3 天内",
+        "percentage": 70,
+        "isFreeUser": false
+      }
     },
-    "timestamp": 1755704131.115
-  },
-  "creditThreshold": 100,
-  "autoResetEnabled": true
+    "timestamp": 1760252101.174
+  }
 }
