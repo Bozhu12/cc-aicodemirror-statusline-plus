@@ -231,25 +231,16 @@ function getCurrentModel() {
     }
 
     if (model) {
-        if (model.toLowerCase().includes('claude-3')) {
-            if (model.toLowerCase().includes('haiku')) {
-                return 'Claude 3 Haiku';
-            } else if (model.toLowerCase().includes('sonnet')) {
-                return 'Claude 3 Sonnet';
-            } else if (model.toLowerCase().includes('opus')) {
-                return 'Claude 3 Opus';
-            }
-        } else if (model.toLowerCase().includes('claude-4') || model.toLowerCase().includes('sonnet-4')) {
-            return 'Claude 4 Sonnet';
-        } else if (model.toLowerCase().includes('opus-4')) {
-            return 'Claude 4 Opus';
-        } else if (model.length > 20) {
-            return model.substring(0, 20) + '...';
+        if (model.toLowerCase().includes('haiku')) {
+            return 'haiku';
+        } else if (model.toLowerCase().includes('sonnet')) {
+            return 'sonnet';
+        } else if (model.toLowerCase().includes('opus')) {
+            return 'opus';
         }
-        return model;
     }
 
-    return '没有指定模型';
+    return 'auto';
 }
 
 function getCurrentOutputStyle() {
@@ -333,29 +324,38 @@ function getCurrentWorkspace() {
     }
 }
 
-
+function getPlanIcon(plan) {
+    const planIcons = {
+        'ULTRA': '👑',
+        'MAX': '💎',
+        'PRO': '⭐',
+        'FREE': '🆓'
+    };
+    return planIcons[plan] || '❓';
+}
 
 function formatDisplay(data) {
-    const currentBranch = getCurrentBranch();
-    const modifiedFilesCount = getModifiedFilesCount();
-    const currentWorkspace = getCurrentWorkspace();
-    const currentOutputStyle = getCurrentOutputStyle();
-
-    // ANSI颜色代码：蓝色
-    const blue = '\x1b[34m';
-    const reset = '\x1b[0m';
-
-    // 构建基础部分（风格、分支和路径）
-    // const stylePart = `${currentOutputStyle}`;
-    const branchPart = currentBranch ? `${currentBranch}(${modifiedFilesCount})` : '';
-    const workspacePart = `${currentWorkspace}`;
-
     if (!data) {
         const currentModel = getCurrentModel();
         return `${blue}🍪 需要Cookie`;
     }
 
+    // ANSI颜色代码：蓝色
+    const blue = '\x1b[34m';
+    const reset = '\x1b[0m';
+
+    const currentBranch = getCurrentBranch();
+    const modifiedFilesCount = getModifiedFilesCount();
+    const currentWorkspace = getCurrentWorkspace();
+    const currentOutputStyle = getCurrentOutputStyle();
+    
     try {
+
+        // 构建基础部分（风格、分支和路径）
+        const stylePart = `${currentOutputStyle}`;
+        const branchPart = currentBranch ? `${currentBranch}(${modifiedFilesCount})` : '';
+        const workspacePart = `${currentWorkspace}`;
+
         const dailyCurrent = data.creditData.current || 0;
         const dailyMax = data.creditData.max || 0;
         const dailyPercentage = dailyMax > 0 ? Math.min(100, Math.max(0, Math.round((dailyCurrent / dailyMax) * 100))): 0;
@@ -363,11 +363,11 @@ function formatDisplay(data) {
         const weeklyLimit = data.weeklyUsageData.weeklyLimit || 0;
         const weeklyPercentage = weeklyLimit > 0 ? Math.min(100, Math.max(0, Math.round((weeklyUsed / weeklyLimit) * 100))) : 0;
         const plan = data.userPlan || 'FREE';
+        const planIcon = getPlanIcon(data.userPlan);
         const canResetToday = data.creditData.canResetToday || false;
         const currentModel = getCurrentModel();
 
-        return `${blue}日: ${dailyCurrent}/${dailyMax}(${dailyPercentage}%) | 周: ${weeklyUsed}/${weeklyLimit}(${weeklyPercentage}%) | 订阅:${plan} | ${currentModel}${reset}\n${blue}代码: ${branchPart} | ${workspacePart}${reset}`;
-
+        return `${blue}${planIcon} ${dailyCurrent}/${weeklyLimit-weeklyUsed} (${currentModel}) | ${stylePart} | ${branchPart} | ${workspacePart}${reset}`;
     } catch (error) {
         const currentModel = getCurrentModel();
         return `${blue}🔴 数据解析失败`;
