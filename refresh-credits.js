@@ -8,7 +8,6 @@
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
 
 // 禁用SSL证书验证警告
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -25,11 +24,11 @@ function checkAndTriggerReset(config, creditsData) {
 
     // 检查是否启用自动重置
     if (!config.autoResetEnabled) return;
-    
+
     // 检查积分是否低于阈值
     const currentCredits = creditsData.credits || 0;
     if (currentCredits >= config.creditThreshold) return;
-    
+
     // 触发积分重置
     triggerCreditReset(config.cookies)
         .catch(() => {
@@ -76,7 +75,7 @@ function triggerCreditReset(cookies) {
             });
 
             req.end();
-            
+
         } catch (error) {
             resolve(false);
         }
@@ -93,22 +92,22 @@ function refreshCreditsCache() {
                 resolve(true);
                 return;
             }
-                
+
             const configFile = path.join(__dirname, 'aicodemirror-config.json');
-            
+
             if (!fs.existsSync(configFile)) {
                 resolve(false);
                 return;
             }
-                
+
             const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
             const cookies = config.cookies;
-            
+
             if (!cookies) {
                 resolve(false);
                 return;
             }
-            
+
             // 调用积分API
             const options = {
                 hostname: 'www.aicodemirror.com',
@@ -119,7 +118,7 @@ function refreshCreditsCache() {
                     'Cookie': cookies,
                     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
                 },
-                timeout: 3000
+                timeout: 5000
             };
 
             const req = https.request(options, (res) => {
@@ -132,16 +131,22 @@ function refreshCreditsCache() {
                     try {
                         if (res.statusCode === 200) {
                             const jsonData = JSON.parse(data);
-                            
-                            // 更新缓存（强制刷新）
-                            config.credits_cache = {
-                                data: jsonData,
-                                timestamp: Date.now() / 1000
-                            };
-                            
+                            const currentCredits = jsonData.credits || jsonData.normalCredits || 0;
+
+                            // 初始化或更新 credits_cache 结构
+                            if (!config.credits_cache) {
+                                config.credits_cache = {
+                                    data: {
+                                        creditData: {
+                                            current: currentCredits
+                                        }
+                                    },
+                                    timestamp: Date.now() / 1000
+                                };
+                            }
+
                             // 检查是否需要自动重置积分
                             checkAndTriggerReset(config, jsonData);
-                            
                             fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
                             resolve(true);
                         } else {
@@ -163,7 +168,7 @@ function refreshCreditsCache() {
             });
 
             req.end();
-            
+
         } catch (error) {
             resolve(false);
         }

@@ -8,7 +8,7 @@
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
+const { formatDisplay, getCurrentModel } = require('./display-formatter');
 
 // 缓存配置 - 30秒缓存，避免频繁API调用
 const CACHE_DURATION = 30; // 秒
@@ -71,9 +71,7 @@ function findMatchingRightBrace(src, start = 0) {
 
 function loadConfig() {
     try {
-        if (!fs.existsSync(CONFIG_FILE)) {
-            return {};
-        }
+        if (!fs.existsSync(CONFIG_FILE)) return {};
         const data = fs.readFileSync(CONFIG_FILE, 'utf8');
         return JSON.parse(data);
     } catch (error) {
@@ -123,7 +121,7 @@ function getCredits(cookies) {
                 'Cookie': cookies,
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
             },
-            timeout: 3000
+            timeout: 5000
         };
 
         const req = https.request(options, (res) => {
@@ -170,8 +168,6 @@ function getCredits(cookies) {
                     saveConfig(config);
 
                     resolve(filteredData)
-
-
                 } catch (error) {
                     consoleLog("Error processing response:", error);
                     resolve(null);
@@ -192,12 +188,6 @@ function getCredits(cookies) {
     });
 }
 
-
-function formatCredits(credits) {
-    return credits.toString();
-}
-
-
 function getDisplayUrl() {
     const baseUrl = process.env.ANTHROPIC_BASE_URL || '';
     if (baseUrl) {
@@ -213,175 +203,9 @@ function getDisplayUrl() {
     return 'anthropic.com';
 }
 
-function getCurrentModel() {
-    // 优先使用环境变量
-    let model = process.env.ANTHROPIC_MODEL || '';
-
-    // 如果环境变量没有，检查settings.json
-    if (!model) {
-        try {
-            const settingsFile = path.join(os.homedir(), '.claude', 'settings.json');
-            if (fs.existsSync(settingsFile)) {
-                const settings = JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
-                model = settings.model || '';
-            }
-        } catch (error) {
-            // 忽略错误
-        }
-    }
-
-    if (model) {
-        if (model.toLowerCase().includes('haiku')) {
-            return 'haiku';
-        } else if (model.toLowerCase().includes('sonnet')) {
-            return 'sonnet';
-        } else if (model.toLowerCase().includes('opus')) {
-            return 'opus';
-        }
-    }
-
-    return 'auto';
-}
-
-function getCurrentOutputStyle() {
-    try {
-        // 优先检查环境变量
-        if (process.env.CLAUDE_OUTPUT_STYLE) {
-            return process.env.CLAUDE_OUTPUT_STYLE;
-        }
-
-        // 检查多个可能的配置文件位置 (按优先级排序)
-        const configPaths = [
-            // 1. 当前工作区的 settings.local.json (优先级最高)
-            path.join(process.cwd(), '.claude', 'settings.local.json'),
-            // 2. 用户根目录的 settings.local.json
-            path.join(os.homedir(), '.claude', 'settings.local.json'),
-            // 3. 当前工作区的 settings.json
-            path.join(process.cwd(), '.claude', 'settings.json'),
-            // 4. 用户根目录的 settings.json (兜底)
-            path.join(os.homedir(), '.claude', 'settings.json')
-        ];
-
-        for (const configPath of configPaths) {
-            if (fs.existsSync(configPath)) {
-                const settings = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-                if (settings.outputStyle) {
-                    return settings.outputStyle;
-                }
-            }
-        }
-
-        return 'default';
-
-    } catch (error) {
-        // 忽略错误
-    }
-    return 'default';
-}
-
-function getCurrentBranch() {
-    try {
-        const { execSync } = require('child_process');
-        const branch = execSync('git branch --show-current', {
-            encoding: 'utf8',
-            stdio: 'pipe',
-            timeout: 2000
-        }).trim();
-        return branch || null;
-    } catch (error) {
-        return null;
-    }
-}
-
-function getModifiedFilesCount() {
-    try {
-        const { execSync } = require('child_process');
-
-        // 使用 git status --porcelain 来获取工作区状态
-        const statusOutput = execSync('git status --porcelain', {
-            encoding: 'utf8',
-            stdio: 'pipe',
-            timeout: 2000
-        }).trim();
-
-        if (!statusOutput) {
-            return 0;
-        }
-
-        // 计算有变化的文件数量（排除空行）
-        const files = statusOutput.split('\n').filter(line => line.trim());
-        return files.length;
-    } catch (error) {
-        return 0;
-    }
-}
-
-function getCurrentWorkspace() {
-    try {
-        return process.cwd();
-    } catch (error) {
-        return 'unknown';
-    }
-}
-
-function getPlanIcon(plan) {
-    const planIcons = {
-        'ULTRA': '👑',
-        'MAX': '💎',
-        'PRO': '⭐',
-        'FREE': '🆓'
-    };
-    return planIcons[plan] || '❓';
-}
-
-function formatDisplay(data) {
-    if (!data) {
-        const currentModel = getCurrentModel();
-        return `${blue}🍪 需要Cookie`;
-    }
-
-    // ANSI颜色代码：蓝色
-    const blue = '\x1b[34m';
-    const reset = '\x1b[0m';
-
-    const currentBranch = getCurrentBranch();
-    const modifiedFilesCount = getModifiedFilesCount();
-    const currentWorkspace = getCurrentWorkspace();
-    const currentOutputStyle = getCurrentOutputStyle();
-    
-    try {
-
-        // 构建基础部分（风格、分支和路径）
-        const stylePart = `${currentOutputStyle}`;
-        const branchPart = currentBranch ? `${currentBranch}(${modifiedFilesCount})` : '';
-        const workspacePart = `${currentWorkspace}`;
-
-        const dailyCurrent = data.creditData.current || 0;
-        const dailyMax = data.creditData.max || 0;
-        const dailyPercentage = dailyMax > 0 ? Math.min(100, Math.max(0, Math.round((dailyCurrent / dailyMax) * 100))): 0;
-        const weeklyUsed = data.weeklyUsageData.weeklyUsed || 0;
-        const weeklyLimit = data.weeklyUsageData.weeklyLimit || 0;
-        const weeklyPercentage = weeklyLimit > 0 ? Math.min(100, Math.max(0, Math.round((weeklyUsed / weeklyLimit) * 100))) : 0;
-        const plan = data.userPlan || 'FREE';
-        const planIcon = getPlanIcon(data.userPlan);
-        const canResetToday = data.creditData.canResetToday || false;
-        const currentModel = getCurrentModel();
-
-        return `${blue}${planIcon} ${dailyCurrent}/${weeklyLimit-weeklyUsed} (${currentModel}) | ${stylePart} | ${branchPart} | ${workspacePart}${reset}`;
-    } catch (error) {
-        const currentModel = getCurrentModel();
-        return `${blue}🔴 数据解析失败`;
-    }
-}
-
 function getValidSession() {
     const config = loadConfig();
-
-    if (config.cookies) {
-        return { cookies: config.cookies };
-    }
-
-    return null;
+    return config.cookies ? { cookies: config.cookies } : null;
 }
 
 function checkAnthropicBaseUrl() {
@@ -399,26 +223,16 @@ async function main() {
             return;
         }
 
-        // 获取有效session和积分数据
         const session = getValidSession();
-        let creditsData = null;
-        consoleLog("获取有效session和积分数据")
-
-        if (session) {
-            creditsData = await getCredits(session.cookies);
-        }
-        consoleLog("获取积分数据完成")
-        consoleLog(creditsData)
+        if (session) await getCredits(session.cookies);
 
         // 格式化并输出状态
-        const statusText = formatDisplay(creditsData);
-        console.log(statusText);
+        console.log(formatDisplay());
 
     } catch (error) {
         // 即使出错也显示基本信息
         const currentUrl = getDisplayUrl();
-        const currentModel = getCurrentModel();
-        console.log(`🔴 错误 | ${currentModel} | ${currentUrl}`);
+        console.log(`🔴 错误 | ${currentUrl}`);
     }
 }
 
