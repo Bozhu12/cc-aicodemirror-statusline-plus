@@ -1,0 +1,39 @@
+{
+  "cookies": "你的Cookie字符串,使用 save-cookie.js 保存",
+  "creditThreshold": 1000,
+  "autoResetEnabled": false,
+  "credits_cache": {
+    "data": {
+      "userPlan": "MAX",
+      "creditData": {
+        "current": "18000",
+        "max": "20000",
+        "normal": "18000",
+        "bonus": "0",
+        "weeklyBonus": "0",
+        "plan": "MAX",
+        "recoveryRate": "500",
+        "lastRecoveryTimeFormatted": "2025-10-16 10:00:00",
+        "dailyResets": 1,
+        "todayResetCount": 0,
+        "remainingResets": 1,
+        "canResetToday": true,
+        "lastResetAtFormatted": "2025-10-15 23:43:57"
+      },
+      "weeklyUsageData": {
+        "plan": "MAX",
+        "weeklyUsed": 20000,
+        "weeklyLimit": 96000,
+        "weeklyLimitBase": 96000,
+        "weeklyBonus": 0,
+        "weeklyRemaining": 76000,
+        "weeklyUsageResetAt": "2025-10-15 09:11:20",
+        "nextResetAt": "2025-10-22 09:11:20",
+        "nextResetAtRelative": "6 天内",
+        "percentage": 79,
+        "isFreeUser": false
+      }
+    },
+    "timestamp": 1760580000.000
+  }
+}

@@ -148,7 +148,26 @@ node save-cookie.js "你的Cookie字符串"
 
 ### aicodemirror-config.json
 
-插件配置文件，包含 Cookie 和缓存数据：
+插件的主配置文件，包含 Cookie 和缓存数据。
+
+#### 📋 配置模板文件
+
+项目包含一个配置模板文件 `aicodemirror-config.example.json`，你可以复制它来创建自己的配置：
+
+```bash
+# Windows
+copy aicodemirror-config.example.json aicodemirror-config.json
+
+# Linux/macOS
+cp aicodemirror-config.example.json aicodemirror-config.json
+```
+
+**⚠️ 重要提示：**
+- `aicodemirror-config.json` 包含你的真实 Cookie，**不应该**提交到 Git 仓库
+- `aicodemirror-config.example.json` 是模板文件，可以安全提交到 Git
+- 项目已在 `.gitignore` 中排除 `aicodemirror-config.json`，确保不会意外泄露
+
+#### 📊 配置文件结构
 
 ```json
 {
@@ -189,20 +208,51 @@ node save-cookie.js "你的Cookie字符串"
 }
 ```
 
-**配置字段说明：**
-- `cookies`: aicodemirror.com 的认证 Cookie
-- `creditThreshold`: 积分重置触发阈值（默认：1000）
-- `autoResetEnabled`: 是否启用自动积分重置功能（默认：false）
-- `credits_cache`: 积分缓存数据（30秒缓存）
-  - `userPlan`: 用户订阅计划（ULTRA/MAX/PRO/FREE）
-  - `creditData`: 每日积分详细信息
-    - `current`: 当前剩余积分
-    - `max`: 每日积分上限
-    - `canResetToday`: 今日是否可重置积分
-  - `weeklyUsageData`: 每周使用额度数据
-    - `weeklyUsed`: 本周已使用积分
-    - `weeklyLimit`: 每周积分限额
-    - `weeklyRemaining`: 本周剩余积分
+**基础配置字段：**
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `cookies` | string | - | aicodemirror.com 的认证 Cookie<br/>⚠️ 包含敏感信息，不要分享 |
+| `creditThreshold` | number | 1000 | 积分重置触发阈值<br/>建议值：500-2000 |
+| `autoResetEnabled` | boolean | false | 是否启用自动积分重置<br/>⚠️ 启用后可能产生费用 |
+
+**缓存数据 (credits_cache)：**
+
+此部分由插件自动管理，无需手动编辑。缓存有效期为 30 秒。
+
+- **userPlan** (string): 用户订阅计划
+  - 可能值: `ULTRA`, `MAX`, `PRO`, `FREE`
+  - 对应图标: 👑, 💎, ⭐, 🆓
+
+- **creditData** (object): 每日积分详细信息
+  - `current`: 当前剩余积分
+  - `max`: 每日积分上限
+  - `normal`: 常规积分数量
+  - `bonus`: 奖励积分数量
+  - `weeklyBonus`: 每周奖励积分
+  - `plan`: 积分计划类型
+  - `recoveryRate`: 积分恢复速率(每小时)
+  - `canResetToday`: 今日是否可重置
+  - `remainingResets`: 剩余重置次数
+
+- **weeklyUsageData** (object): 每周使用额度数据
+  - `weeklyUsed`: 本周已使用积分
+  - `weeklyLimit`: 每周积分限额
+  - `weeklyRemaining`: 本周剩余积分
+  - `percentage`: 已使用百分比
+  - `isFreeUser`: 是否为免费用户
+
+**手动编辑提示：**
+
+通常你只需要手动编辑以下字段：
+```json
+{
+  "cookies": "从浏览器获取的Cookie",
+  "creditThreshold": 1000,
+  "autoResetEnabled": false
+}
+```
+其他字段由插件自动管理，建议不要手动修改。
 
 ### 环境变量支持
 
@@ -230,7 +280,9 @@ node save-cookie.js "你的Cookie字符串"
 ```
 
 **启用功能**：设置 `autoResetEnabled: true`
+
 **调整阈值**：修改 `creditThreshold` 值，比如设为 `500` 或 `2000`
+
 **禁用功能**：设置 `autoResetEnabled: false`（默认值）
 
 ### 安全特性

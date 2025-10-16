@@ -133,32 +133,144 @@ function getCredits(cookies) {
             res.on('end', () => {
                 try {
                     consoleLog("-----------", res.statusCode, "-----------");
-                    // consoleLog(data);
+                    consoleLog("响应内容长度:", data.length);
+                    // consoleLog("响应内容前1000字符:", data.substring(0, 1000));
+
                     if (res.statusCode !== 200) throw new Error(`非200响应: ${res.statusCode}`);
 
-                    // 获取creditPacks
-                    const firstCheck = data.includes('creditPacks');
-                    consoleLog("包含 creditPacks:", firstCheck);
-                    if (firstCheck === false) throw new Error("获取 creditPacks 失败");
-                    const index = data.indexOf('creditPacks');
-                    const snippet = data.substring(index-3, index + 10000);
-                    consoleLog("片段:", snippet);
+                    // 新的解析逻辑 - 查找包含所有必需字段的JSON对象
+                    // 必须同时包含 userPlan, creditData, weeklyUsageData
+                    const hasAllFields = data.includes('userPlan') &&
+                                        data.includes('creditData') &&
+                                        data.includes('weeklyUsageData');
 
+                    consoleLog("包含所有必需字段:", hasAllFields);
 
-                    const endIdx = findMatchingRightBrace(snippet);
-                    const matchText = snippet.substring(0, endIdx + 1);
-                    consoleLog("匹配文本:", matchText);
+                    if (!hasAllFields) {
+                        throw new Error("响应中缺少必需字段 - 网站结构可能已改变");
+                    }
 
-                    const correctedString = matchText.replace(/\\"/g, '"');
-                    // consoleLog("Corrected String:", correctedString);
+                    // 新策略: 先找到同时包含三个字段的文本区域
+                    // 找到这三个字段中第一个和最后一个出现的位置
+                    const positions = {
+                        userPlan: data.indexOf('userPlan'),
+                        creditData: data.indexOf('creditData'),
+                        weeklyUsageData: data.indexOf('weeklyUsageData')
+                    };
 
-                    // Now, parse the corrected string
-                    const dataObject = JSON.parse(correctedString);
-                    // consoleLog("JSON Parsed Successfully:", dataObject);
+                    const minPos = Math.min(...Object.values(positions));
+                    const maxPos = Math.max(...Object.values(positions));
 
-                    // 过滤掉 creditPacks 数组以减少缓存大小，避免空指针
-                    const { creditPacks, ...filteredData } = dataObject || {};
-                    consoleLog("Filtered Data (creditPacks removed):", filteredData);
+                    consoleLog("字段位置:", positions);
+                    consoleLog("区域范围:", minPos, "-", maxPos);
+
+                    // 新策略:直接构造包含三个字段的JSON对象
+                    // 提取每个字段的值
+                    const extractFieldValue = (fieldName, startPos) => {
+                        // 找到字段名后的 :
+                        let colonPos = startPos;
+                        while (colonPos < data.length && data[colonPos] !== ':') {
+                            colonPos++;
+                        }
+                        if (colonPos >= data.length) {
+                            consoleLog(`未找到字段 ${fieldName} 的冒号`);
+                            return null;
+                        }
+
+                        // 从 : 后开始,找到值的起始
+                        let valueStart = colonPos + 1;
+                        while (valueStart < data.length && (data[valueStart] === ' ' || data[valueStart] === '\n' || data[valueStart] === '\t')) {
+                            valueStart++;
+                        }
+
+                        consoleLog(`字段 ${fieldName} 值起始字符:`, data[valueStart], `位置:`, valueStart);
+
+                        // 判断值的类型并提取
+                        if (data[valueStart] === '{') {
+                            // 对象类型
+                            const snippet = data.substring(valueStart);
+                            const endIdx = findMatchingRightBrace(snippet);
+                            if (endIdx === -1) {
+                                consoleLog(`字段 ${fieldName} 对象未找到闭合符`);
+                                return null;
+                            }
+                            return data.substring(valueStart, valueStart + endIdx + 1);
+                        } else if (data[valueStart] === '"') {
+                            // 字符串类型,需要处理转义引号
+                            let endQuote = valueStart + 1;
+                            while (endQuote < data.length) {
+                                if (data[endQuote] === '"' && data[endQuote - 1] !== '\\') {
+                                    break;
+                                }
+                                endQuote++;
+                            }
+                            if (endQuote >= data.length) {
+                                consoleLog(`字段 ${fieldName} 字符串未找到结束引号`);
+                                return null;
+                            }
+                            return data.substring(valueStart, endQuote + 1);
+                        } else if (data[valueStart] === '[') {
+                            // 数组类型(虽然我们不需要,但为了完整性)
+                            let depth = 0;
+                            let endPos = valueStart;
+                            while (endPos < data.length) {
+                                if (data[endPos] === '[') depth++;
+                                if (data[endPos] === ']') {
+                                    depth--;
+                                    if (depth === 0) break;
+                                }
+                                endPos++;
+                            }
+                            return data.substring(valueStart, endPos + 1);
+                        } else {
+                            // 其他类型(数字,布尔,null等),找到下一个逗号或}
+                            let endPos = valueStart;
+                            while (endPos < data.length && data[endPos] !== ',' && data[endPos] !== '}' && data[endPos] !== ']') {
+                                endPos++;
+                            }
+                            return data.substring(valueStart, endPos).trim();
+                        }
+                    };
+
+                    const userPlanValue = extractFieldValue('userPlan', positions.userPlan);
+                    const creditDataValue = extractFieldValue('creditData', positions.creditData);
+                    const weeklyUsageDataValue = extractFieldValue('weeklyUsageData', positions.weeklyUsageData);
+
+                    consoleLog("提取的userPlan:", userPlanValue);
+                    consoleLog("提取的creditData长度:", creditDataValue ? creditDataValue.length : 0);
+                    consoleLog("提取的weeklyUsageData长度:", weeklyUsageDataValue ? weeklyUsageDataValue.length : 0);
+
+                    if (!userPlanValue || !creditDataValue || !weeklyUsageDataValue) {
+                        throw new Error("无法提取所有必需字段的值");
+                    }
+
+                    // 手动构造JSON字符串
+                    const constructedJson = `{
+                        "userPlan": ${userPlanValue},
+                        "creditData": ${creditDataValue},
+                        "weeklyUsageData": ${weeklyUsageDataValue}
+                    }`;
+
+                    consoleLog("构造的JSON前200字符:", constructedJson.substring(0, 200));
+
+                    // 处理转义字符并解析
+                    const correctedString = constructedJson.replace(/\\"/g, '"');
+                    let dataObject;
+
+                    try {
+                        dataObject = JSON.parse(correctedString);
+                        consoleLog("JSON解析成功");
+                        consoleLog("对象字段:", Object.keys(dataObject));
+                    } catch (e) {
+                        consoleLog("解析失败,尝试原始字符串...");
+                        consoleLog("错误:", e.message);
+                        throw new Error(`JSON解析失败: ${e.message}`);
+                    }
+
+                    consoleLog("验证通过,找到有效数据!");
+
+                    const filteredData = dataObject;
+                    consoleLog("Parsed Data:", filteredData);
 
                     // 保存到缓存（使用过滤后的数据）
                     config[cacheKey] = {
