@@ -12,6 +12,7 @@
 - ⚡ **智能缓存**：30秒缓存机制，避免频繁API调用
 - 🔄 **自动刷新**：支持会话结束时自动刷新积分
 - 🔄 **智能重置**：积分不足时自动触发重置，恢复可用积分
+- 🚨 **动态颜色预警**：API请求失败时自动切换为红色警告，直观提示Cookie过期或网络异常
 
 ## 📦 安装步骤
 
@@ -130,18 +131,37 @@ node save-cookie.js "你的Cookie字符串"
 
 ## 📊 状态栏显示格式示例
 
+### 正常状态
 ```
 💎 37288/31167 (sonnet) | default | main(4) | C:\Users\username\project
 ```
 
+```js
+const infoParts = buildSeparatedString([
+            `${planIcon} ${realDailyCurrent}/${weeklyLimit - weeklyUsed} (${currentModel})`,
+            stylePart,
+            branchPart,
+            workspacePart
+        ]);
+```
+
 **格式说明：**
+
 - `💎` - 订阅计划图标（👑=ULTRA, 💎=MAX, ⭐=PRO, 🆓=FREE）
 - `37288` - 当前可用积分（包含今日可重置的积分）
 - `31167` - 本周剩余积分额度
 - `(sonnet)` - 当前模型（haiku/sonnet/opus/auto）
 - `default` - 当前输出样式
-- `simple(4)` - Git 分支名(修改文件数)
-- 最后是当前工作目录路径
+- `main(4)` - Git 分支名(修改文件数)
+
+### 警告状态
+
+当API请求失败时，整个状态栏文字会变为红色加粗显示，提醒你检查Cookie或网络连接。
+
+**颜色状态：**
+
+- 🟣 **紫色** (#BD93F9)：正常运行，API请求成功
+- 🔴 **红色加粗**：警告状态，API请求失败（Cookie过期/网络异常）
 
 
 ## 🔧 配置文件说明
@@ -305,11 +325,22 @@ cp aicodemirror-config.example.json aicodemirror-config.json
 - 检测当前模型和配置
 - 调用 display-formatter.js 格式化输出
 - 支持调试模式（使用 `--debug` 或 `-d` 参数）
+- **新增** (v1.4): 智能错误状态检测，向格式化函数传递请求状态
 
 **调试模式**：
 ```bash
 # 测试状态栏显示并查看详细日志
 node credit-status.js --debug
+```
+
+**错误处理逻辑** (v1.4):
+```javascript
+// 捕获API请求结果
+const credits = session ? await getCredits(session.cookies) : null;
+
+// 根据请求状态动态控制显示颜色
+// 请求失败时传true，成功时传false
+console.log(formatDisplay(!credits));
 ```
 
 ### display-formatter.js
@@ -320,10 +351,27 @@ node credit-status.js --debug
 - 获取 Git 分支和修改文件数
 - 计算实际可用积分（包含今日可重置的积分）
 - 提供订阅计划图标映射
+- **新增** (v1.4): 根据警告状态动态切换显示颜色
 
 **积分计算逻辑**：
 - 如果 `canResetToday` 为 `true`，显示的可用积分 = current + max
 - 否则，显示的可用积分 = current
+
+**动态颜色系统** (v1.4):
+```javascript
+// formatDisplay() 新增warning参数
+function formatDisplay(warning) {
+  const purple = '\x1b[38;2;189;147;249m';  // 正常状态：紫色
+  const red = '\x1b[31;1m';                  // 警告状态：红色加粗
+
+  // 根据警告状态动态选择颜色
+  return `${warning ? red : purple}${infoParts}${reset}`;
+}
+```
+
+**状态颜色说明**：
+- 🟣 **紫色** (#BD93F9): API请求成功，积分正常获取
+- 🔴 **红色加粗**: API请求失败，Cookie过期或网络异常
 
 ### save-cookie.js
 Cookie 保存工具，提供：
@@ -346,10 +394,15 @@ Cookie 保存工具，提供：
 `display-formatter.js` 中的 `formatDisplay()` 函数负责生成状态栏的最终显示文本。该函数在 `credit-status.js` 中被调用：
 
 ```javascript
-// credit-status.js 调用流程
-await getCredits(session.cookies);  // 获取并缓存积分数据
-console.log(formatDisplay());        // 输出格式化结果到状态栏
+// credit-status.js 调用流程 (v1.4 更新)
+const credits = session ? await getCredits(session.cookies) : null;
+console.log(formatDisplay(!credits));  // 传递警告状态参数
 ```
+
+**参数说明**：
+- `warning` (boolean): 控制状态栏颜色
+  - `true`: 显示红色（API请求失败）
+  - `false`: 显示紫色（正常状态）
 
 ### buildSeparatedString 辅助方法
 
@@ -533,7 +586,7 @@ const reset   = '\x1b[0m'; // 重置所有样式
    ```bash
    # Windows
    notepad %USERPROFILE%\.claude\cc-aicodemirror-statusline-plus\display-formatter.js
-
+   
    # Linux/macOS
    nano ~/.claude/cc-aicodemirror-statusline-plus/display-formatter.js
    ```
@@ -549,7 +602,7 @@ const reset   = '\x1b[0m'; // 重置所有样式
    # Windows
    cd %USERPROFILE%\.claude\cc-aicodemirror-statusline-plus
    node credit-status.js
-
+   
    # Linux/macOS
    cd ~/.claude/cc-aicodemirror-statusline-plus
    node credit-status.js
@@ -647,16 +700,7 @@ cd ~/.claude/cc-aicodemirror-statusline-plus
 node save-cookie.js "新的Cookie字符串"
 ```
 
-### 2. 显示"🍪 需要Cookie"
-
-**原因：** Cookie 无效或已过期
-
-**解决方法：**
-1. 重新登录 aicodemirror.com
-2. 按照上述步骤重新获取 Cookie
-3. 使用 `save-cookie.js` 重新保存
-
-### 3. 显示"🔴 数据解析失败"
+### 2. 显示"🔴 数据解析失败"
 
 **可能原因：**
 - 网络连接问题
@@ -676,6 +720,47 @@ curl -H "Cookie: 你的Cookie" https://www.aicodemirror.com/dashboard/credit-pac
 # 重新获取Cookie
 node save-cookie.js "新Cookie"
 ```
+
+### 3 状态栏文字显示红色
+
+**现象：** 整个状态栏内容变为红色加粗显示
+
+**原因：** API请求失败，可能是：
+- Cookie已过期或无效
+- 网络连接中断
+- aicodemirror.com服务异常
+
+**解决方法：**
+1. **检查Cookie有效性**
+   ```bash
+   # 重新获取并保存Cookie
+   node save-cookie.js "新的Cookie字符串"
+   ```
+
+2. **测试网络连接**
+   ```bash
+   # 测试能否访问目标网站
+   curl https://www.aicodemirror.com/dashboard/credit-packs
+   ```
+
+3. **使用调试模式定位问题**
+   ```bash
+   node credit-status.js --debug
+   # 查看详细的错误信息和响应状态
+   ```
+
+4. **检查缓存文件**
+   ```bash
+   # Windows
+   type %USERPROFILE%\.claude\cc-aicodemirror-statusline-plus\aicodemirror-config.json
+   
+   # Linux/macOS
+   cat ~/.claude/cc-aicodemirror-statusline-plus/aicodemirror-config.json
+   ```
+
+**颜色状态说明**：
+- 🟣 紫色：正常，API请求成功
+- 🔴 红色：警告，API请求失败，需要检查Cookie或网络
 
 ### 4. Git 信息不显示
 

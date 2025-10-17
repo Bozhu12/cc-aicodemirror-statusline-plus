@@ -336,10 +336,10 @@ async function main() {
         }
 
         const session = getValidSession();
-        if (session) await getCredits(session.cookies);
+        const credits = session ? await getCredits(session.cookies) : null;
 
-        // 格式化并输出状态
-        console.log(formatDisplay());
+        // 格式化并输出状态 (请求失败传true，成功传false)
+        console.log(formatDisplay(!credits));
 
     } catch (error) {
         // 即使出错也显示基本信息

@@ -6,28 +6,23 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execSync } = require('child_process');
+const {execSync} = require('child_process');
 
 // 配置文件路径
 const CONFIG_FILE = path.join(__dirname, 'aicodemirror-config.json');
 
-/**
- * 构建带分隔符的字符串，自动忽略空白部分
- * @param {Array<string>} parts 需要连接的部分
- * @param {string} separator 分隔符，默认为 ' | '
- * @returns {string} 连接后的字符串
- */
-function buildSeparatedString(parts, separator = ' | ') {
-    return parts.filter(part => part && part.trim()).join(separator);
-}
 
 /**
  * 格式化显示状态栏信息
+ *
+ * @param {boolean} warning 是否显示警告信息
  * @returns {string} 格式化后的状态栏文本
  */
-function formatDisplay() {
+function formatDisplay(warning) {
     // ANSI紫色转义序列，颜色为 #BD93F9 (RGB: 189, 147, 249)
-    const blue = '\x1b[38;2;189;147;249m';
+    const purple = '\x1b[38;2;189;147;249m';
+    /// 红色加粗
+    const red = '\x1b[31;1m';
     // ANSI重置转义序列，用于将终端输出颜色重置为默认值
     const reset = '\x1b[0m';
 
@@ -39,7 +34,7 @@ function formatDisplay() {
     const data = config[cacheKey] ? config[cacheKey].data : null;
 
     // 如果没有积分数据，返回需要Cookie的提示信息
-    if (!data) return `${blue}🍪 需要Cookie${reset}`;
+    if (!data) return `${red}🍪 json解析异常${reset}`;
 
     // 当前Git分支名称，如果不在Git仓库中则为null
     const currentBranch = getCurrentBranch();
@@ -63,7 +58,7 @@ function formatDisplay() {
         // 每日积分的最大限制数量
         const dailyMax = data.creditData.max || 0;
         // 每日积分使用百分比，限制在0-100之间
-        const dailyPercentage = dailyMax > 0 ? Math.min(100, Math.max(0, Math.round((dailyCurrent / dailyMax) * 100))): 0;
+        const dailyPercentage = dailyMax > 0 ? Math.min(100, Math.max(0, Math.round((dailyCurrent / dailyMax) * 100))) : 0;
         // 本周已使用的积分数量
         const weeklyUsed = data.weeklyUsageData.weeklyUsed || 0;
         // 每周积分的总限制数量
@@ -83,24 +78,35 @@ function formatDisplay() {
         let realDailyCurrent = dailyCurrent;
         try {
             if (canResetToday) realDailyCurrent = parseInt(dailyCurrent.trim()) + parseInt(dailyMax.trim());
-        } catch (error) {}
+        } catch (error) {
+        }
 
         // 构建状态栏信息，自动过滤空白部分
         const infoParts = buildSeparatedString([
-            `${planIcon} ${realDailyCurrent}/${weeklyLimit-weeklyUsed} (${currentModel})`,
+            `${planIcon} ${realDailyCurrent}/${weeklyLimit - weeklyUsed} (${currentModel})`,
             stylePart,
             branchPart,
             workspacePart
         ]);
 
         // 返回格式化后的状态栏显示字符串
-        return `${blue}${infoParts}${reset}`;
+        return `${warning ? red : purple}${infoParts}${reset}`;
     } catch (error) {
         // 在catch块中获取当前模型（用于错误情况下的显示）
         const currentModel = getCurrentModel();
         // 返回数据解析失败的错误提示
-        return `${blue}🔴 数据解析失败${reset}`;
+        return `${red}🔴 数据解析失败${reset}`;
     }
+}
+
+/**
+ * 构建带分隔符的字符串，自动忽略空白部分
+ * @param {Array<string>} parts 需要连接的部分
+ * @param {string} separator 分隔符，默认为 ' | '
+ * @returns {string} 连接后的字符串
+ */
+function buildSeparatedString(parts, separator = ' | ') {
+    return parts.filter(part => part && part.trim()).join(separator);
 }
 
 /**
