@@ -1,17 +1,18 @@
-# Claude Code 状态栏增强插件
+# Claude Code 状态栏增强插件 v2.0
 
-这是一个用于 Claude Code 的状态栏增强插件，可以在状态栏显示 aicodemirror.com 的积分余额、计划类型、当前模型、Git 分支状态等信息。
+这是一个用于 Claude Code 的状态栏增强插件，可以在状态栏显示 aicodemirror.com 的余额、实时使用量、计划类型、当前模型、Git 分支状态等信息。
 
 ## ✨ 功能特性
 
-- 💎 **积分显示**：实时显示 aicodemirror.com 积分余额和计划类型
+- 💎 **余额显示**：实时显示 aicodemirror.com 余额和计划类型
+- 📊 **使用量监控** ：显示最近1小时的实时使用量，精确掌握消费情况
+- 🚀 **并发请求优化** ：双接口并发执行，响应更快，容错性更强
 - 🤖 **模型信息**：显示当前使用的 Claude 模型版本
 - 🎨 **输出风格**：显示当前 Claude 输出风格配置
 - 🌿 **Git 集成**：显示当前分支和修改文件数量
 - 📁 **工作区路径**：显示当前工作目录
 - ⚡ **智能缓存**：30秒缓存机制，避免频繁API调用
-- 🔄 **自动刷新**：支持会话结束时自动刷新积分
-- 🔄 **智能重置**：积分不足时自动触发重置，恢复可用积分
+- 🔄 **自动刷新**：支持会话结束时自动刷新缓存
 - 🚨 **动态颜色预警**：API请求失败时自动切换为红色警告，直观提示Cookie过期或网络异常
 
 ## 📦 安装步骤
@@ -44,18 +45,6 @@ git clone https://github.com/Bozhu12/cc-aicodemirror-statusline-plus.git .
 
 ```json
 {
-  "hooks": {
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"%USERPROFILE%\\.claude\\cc-aicodemirror-statusline-plus\\refresh-credits.js\""
-          }
-        ]
-      }
-    ]
-  },
   "statusLine": {
     "type": "command",
     "command": "node \"%USERPROFILE%\\.claude\\cc-aicodemirror-statusline-plus\\credit-status.js\"",
@@ -68,18 +57,6 @@ git clone https://github.com/Bozhu12/cc-aicodemirror-statusline-plus.git .
 
 ```json
 {
-  "hooks": {
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/cc-aicodemirror-statusline-plus/refresh-credits.js"
-          }
-        ]
-      }
-    ]
-  },
   "statusLine": {
     "type": "command",
     "command": "node ~/.claude/cc-aicodemirror-statusline-plus/credit-status.js",
@@ -107,8 +84,8 @@ git clone https://github.com/Bozhu12/cc-aicodemirror-statusline-plus.git .
 #### 步骤 3：保存 Cookie
 
 ```bash
-# 进入 .claude 根目录
-cd ~/.claude
+# 进入项目目录
+cd ~/.claude/cc-aicodemirror-statusline-plus
 
 # 保存 Cookie（替换为你的实际 Cookie 值）
 node save-cookie.js "你的Cookie字符串"
@@ -116,43 +93,43 @@ node save-cookie.js "你的Cookie字符串"
 
 成功保存后会显示：
 ```
-✅ Cookie已保存到: /path/to/aicodemirror-config.json
+✅ Cookie已保存
 📏 Cookie长度: xxxx 字符
 
 🧪 正在测试...
-测试结果: 日: 5210/8000(65%) | 周: 38438/38400(100%) | 订阅:PRO | Claude 4 Sonnet
-✅ 测试成功！
-🎉 现在重启Claude Code即可看到状态栏积分显示
+✅ 测试成功！信息已获取
+🎉 现在重启 Claude Code 即可看到状态栏显示
 ```
 
 ### 4. 重启 Claude Code
 
-保存配置后，重启 Claude Code 即可在状态栏看到积分信息。
+保存配置后，重启 Claude Code 即可在状态栏看到实时信息。
 
 ## 📊 状态栏显示格式示例
 
 ### 正常状态
 ```
-💎 37288/31167 (sonnet) | default | main(4) | C:\Users\username\project
+👑 924.87/13.36 (auto) | main(2) | C:\Users\Bozhu12\.claude\cc-aicodemirror-statusline-plus
 ```
 
 ```js
 const infoParts = buildSeparatedString([
-            `${planIcon} ${realDailyCurrent}/${weeklyLimit - weeklyUsed} (${currentModel})`,
-            stylePart,
-            branchPart,
-            workspacePart
-        ]);
+    `${planIcon} ${creditsDisplay}/${usageDisplay} ¥ (${currentModel})`,
+    stylePart,
+    branchPart,
+    workspacePart
+]);
 ```
 
 **格式说明：**
 
-- `💎` - 订阅计划图标（👑=ULTRA, 💎=MAX, ⭐=PRO, 🆓=FREE）
-- `37288` - 当前可用积分（包含今日可重置的积分）
-- `31167` - 本周剩余积分额度
-- `(sonnet)` - 当前模型（haiku/sonnet/opus/auto）
-- `default` - 当前输出样式
-- `main(4)` - Git 分支名(修改文件数)
+- `👑` - 订阅计划图标（👑=ULTRA, 💎=MAX, ⭐=PRO, 🆓=FREE）
+- `924.87` - 当前总余额（保留两位小数）
+- `13.36` - 最近1小时实时使用量（保留两位小数）
+- `¥` - 单位标识
+- `(auto)` - 当前模型（haiku/sonnet/opus/auto）
+- `main(2)` - Git 分支名(修改文件数)
+- 路径部分 - 当前工作目录
 
 ### 警告状态
 
@@ -192,38 +169,27 @@ cp aicodemirror-config.example.json aicodemirror-config.json
 ```json
 {
   "cookies": "你的Cookie字符串",
-  "creditThreshold": 1000,
-  "autoResetEnabled": false,
   "credits_cache": {
     "data": {
-      "userPlan": "MAX",
-      "creditData": {
-        "current": "17288",
-        "max": "20000",
-        "normal": "17288",
-        "bonus": "0",
-        "plan": "MAX",
-        "recoveryRate": "500",
-        "lastRecoveryTimeFormatted": "2025-10-12 14:00:00",
-        "dailyResets": 1,
-        "todayResetCount": 0,
-        "remainingResets": 1,
-        "canResetToday": true,
-        "lastResetAtFormatted": "2025-10-11 16:06:46"
-      },
-      "weeklyUsageData": {
-        "plan": "MAX",
-        "weeklyUsed": 64638,
-        "weeklyLimit": 96000,
-        "weeklyRemaining": 31362,
-        "weeklyUsageResetAt": "2025-10-08 08:00:00",
-        "nextResetAt": "2025-10-15 08:00:00",
-        "nextResetAtRelative": "3 天内",
-        "percentage": 67,
-        "isFreeUser": false
+      "user": {
+        "id": "1001489",
+        "email": null,
+        "plan": "ULTRA",
+        "status": "ACTIVE",
+        "createdAt": "2025-07-16T01:10:36.289Z",
+        "updatedAt": "2025-12-07T13:28:41.135Z",
+        "credits": 924784
       }
     },
-    "timestamp": 1760249994.282
+    "timestamp": 1765165798.785
+  },
+  "usage_cache": {
+    "data": {
+      "hour": "2025-12-08T03:00:00.000Z",
+      "consumed": 13436,
+      "added": 0
+    },
+    "timestamp": 1765165798.845
   }
 }
 ```
@@ -233,99 +199,47 @@ cp aicodemirror-config.example.json aicodemirror-config.json
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `cookies` | string | - | aicodemirror.com 的认证 Cookie<br/>⚠️ 包含敏感信息，不要分享 |
-| `creditThreshold` | number | 1000 | 积分重置触发阈值<br/>建议值：500-2000 |
-| `autoResetEnabled` | boolean | false | 是否启用自动积分重置<br/>⚠️ 启用后可能产生费用 |
 
-**缓存数据 (credits_cache)：**
+**缓存数据 (v2.0 更新)：**
 
 此部分由插件自动管理，无需手动编辑。缓存有效期为 30 秒。
 
-- **userPlan** (string): 用户订阅计划
+**credits_cache** - 用户信息：
+- **user.plan** (string): 用户订阅计划
   - 可能值: `ULTRA`, `MAX`, `PRO`, `FREE`
   - 对应图标: 👑, 💎, ⭐, 🆓
+- **user.credits** (number): 当前总余额（单位：千分之一，需除以1000）
+- **user.status** (string): 账户状态
+- **user.id** (string): 用户ID
 
-- **creditData** (object): 每日积分详细信息
-  - `current`: 当前剩余积分
-  - `max`: 每日积分上限
-  - `normal`: 常规积分数量
-  - `bonus`: 奖励积分数量
-  - `weeklyBonus`: 每周奖励积分
-  - `plan`: 积分计划类型
-  - `recoveryRate`: 积分恢复速率(每小时)
-  - `canResetToday`: 今日是否可重置
-  - `remainingResets`: 剩余重置次数
-
-- **weeklyUsageData** (object): 每周使用额度数据
-  - `weeklyUsed`: 本周已使用积分
-  - `weeklyLimit`: 每周积分限额
-  - `weeklyRemaining`: 本周剩余积分
-  - `percentage`: 已使用百分比
-  - `isFreeUser`: 是否为免费用户
+**usage_cache** - 使用量监控 ****：
+- **hour** (string): 统计时间段（ISO 8601格式）
+- **consumed** (number): 该时段消费的额度（单位：千分之一，需除以1000）
+- **added** (number): 该时段增加的额度
 
 **手动编辑提示：**
 
-通常你只需要手动编辑以下字段：
-```json
-{
-  "cookies": "从浏览器获取的Cookie",
-  "creditThreshold": 1000,
-  "autoResetEnabled": false
-}
-```
-其他字段由插件自动管理，建议不要手动修改。
+通常你只需要手动编辑 `cookies` 字段，其他字段由插件自动管理，建议不要手动修改。
 
 ### 环境变量支持
 
-- `ANTHROPIC_BASE_URL`：API 基础地址，包含 `aicodemirror.com` 时才显示积分
+- `ANTHROPIC_BASE_URL`：API 基础地址，包含 `aicodemirror.com` 时才显示信息
 - `ANTHROPIC_MODEL`：当前模型，优先级高于配置文件
 - `CLAUDE_OUTPUT_STYLE`：输出风格，优先级高于配置文件
-
-## 💰 积分重置机制
-
-### 工作原理
-当 Claude Code 会话结束时，插件会自动检查积分余额。如果积分低于设定阈值，将自动调用 aicodemirror.com 的积分重置接口。
-
-### 触发条件
-积分重置**仅在以下条件同时满足时触发**：
-1. **功能启用**：`autoResetEnabled` 为 `true`（默认为 false，即关闭状态）
-2. **积分不足**：当前积分 < 设定阈值（默认 1000）
-3. **会话结束**：Claude Code 停止对话时（Hook Stop 触发）
-
-### 配置管理
-```json
-{
-  "creditThreshold": 1000,      // 触发阈值，可自定义
-  "autoResetEnabled": true       // 功能开关，设为 true 启用，false 关闭
-}
-```
-
-**启用功能**：设置 `autoResetEnabled: true`
-
-**调整阈值**：修改 `creditThreshold` 值，比如设为 `500` 或 `2000`
-
-**禁用功能**：设置 `autoResetEnabled: false`（默认值）
-
-### 安全特性
-- **静默执行**：不产生任何输出，不影响状态栏显示
-- **错误静默**：网络错误或接口异常不会影响正常使用
-- **无重试机制**：避免意外的重复触发
-- **即时触发**：检测到条件满足立即执行
-
-### ⚠️ 使用须知
-1. **账单影响**：积分重置可能产生费用，请确认你的付费计划
-2. **自动执行**：功能启用后会在后台自动运行，无需手动干预
-3. **网络依赖**：需要稳定的网络连接访问 aicodemirror.com
-4. **Cookie有效性**：确保认证 Cookie 未过期
 
 ## 🛠️ 脚本说明
 
 ### credit-status.js
 主要状态栏脚本，负责：
-- 获取积分信息（支持 30 秒缓存机制）
+- **并发请求优化**: 同时请求两个API接口，提升响应速度
+  - `/api/user/profile` - 获取用户信息
+  - `/api/user/usage/chart?hours=1` - 获取最近1小时使用量
+- **容错机制**: 一个接口成功即视为成功，除非两者都失败
+- **智能缓存**: 两个接口分别缓存（`credits_cache` 和 `usage_cache`），有效期30秒
+- **并发安全**: 修复了并发写入竞争条件，确保两个缓存都能正确保存
 - 检测当前模型和配置
 - 调用 display-formatter.js 格式化输出
 - 支持调试模式（使用 `--debug` 或 `-d` 参数）
-- **新增** (v1.4): 智能错误状态检测，向格式化函数传递请求状态
 
 **调试模式**：
 ```bash
@@ -333,33 +247,53 @@ cp aicodemirror-config.example.json aicodemirror-config.json
 node credit-status.js --debug
 ```
 
-**错误处理逻辑** (v1.4):
+**v2.0 核心实现**：
 ```javascript
-// 捕获API请求结果
-const credits = session ? await getCredits(session.cookies) : null;
+// 并发执行两个请求
+const [credits, usage] = await Promise.all([
+    session ? getCredits(session.cookies) : Promise.resolve(null),
+    session ? getUsageChart(session.cookies) : Promise.resolve(null)
+]);
+
+// 容错逻辑：一个成功就算成功
+const hasAnySuccess = credits !== null || usage !== null;
 
 // 根据请求状态动态控制显示颜色
-// 请求失败时传true，成功时传false
-console.log(formatDisplay(!credits));
+console.log(formatDisplay(!hasAnySuccess));
 ```
 
-### display-formatter.js
+### display-formatter.js (v2.0 更新)
 状态栏显示格式化核心模块，负责：
 - 格式化状态栏显示信息
+- **双缓存读取**: 同时读取 `credits_cache` 和 `usage_cache`
+- **实时使用量显示**: 展示最近1小时的消费情况
+- **精度优化**: 余额和使用量均保留两位小数（从三位优化）
 - 获取当前模型（优先级：环境变量 > settings.json）
 - 获取当前输出样式（支持多级配置文件查找）
 - 获取 Git 分支和修改文件数
-- 计算实际可用积分（包含今日可重置的积分）
 - 提供订阅计划图标映射
-- **新增** (v1.4): 根据警告状态动态切换显示颜色
+- 根据警告状态动态切换显示颜色
 
-**积分计算逻辑**：
-- 如果 `canResetToday` 为 `true`，显示的可用积分 = current + max
-- 否则，显示的可用积分 = current
-
-**动态颜色系统** (v1.4):
+**v2.0 数据处理逻辑**：
 ```javascript
-// formatDisplay() 新增warning参数
+// 从配置中读取两个缓存
+const creditsData = config['credits_cache']?.data;
+const usageData = config['usage_cache']?.data;
+
+// 余额显示（保留两位小数）
+const credits = creditsData.user?.credits || 0;
+const creditsDisplay = (credits / 1000).toFixed(2);
+
+// 使用量显示（保留两位小数）
+let usageDisplay = '0.00';
+if (usageData && typeof usageData.consumed === 'number') {
+    usageDisplay = (usageData.consumed / 1000).toFixed(2);
+}
+```
+
+**动态颜色系统**:
+```javascript
+// formatDisplay() 接收warning参数
 function formatDisplay(warning) {
   const purple = '\x1b[38;2;189;147;249m';  // 正常状态：紫色
   const red = '\x1b[31;1m';                  // 警告状态：红色加粗
@@ -370,7 +304,7 @@ function formatDisplay(warning) {
 ```
 
 **状态颜色说明**：
-- 🟣 **紫色** (#BD93F9): API请求成功，积分正常获取
+- 🟣 **紫色** (#BD93F9): API请求成功，余额和使用量正常获取
 - 🔴 **红色加粗**: API请求失败，Cookie过期或网络异常
 
 ### save-cookie.js
@@ -380,13 +314,6 @@ Cookie 保存工具，提供：
 - 配置文件管理
 - 自动调用 credit-status.js 进行测试验证
 
-### refresh-credits.js
-积分刷新脚本（Stop Hook），用于：
-- 会话结束时强制刷新积分缓存
-- 积分不足时自动触发重置机制（需启用 autoResetEnabled）
-- 静默执行，不影响状态栏显示
-- 仅在 ANTHROPIC_BASE_URL 包含 aicodemirror.com 时运行
-
 ## 🎨 自定义状态栏格式
 
 ### formatDisplay 函数工作原理
@@ -394,9 +321,10 @@ Cookie 保存工具，提供：
 `display-formatter.js` 中的 `formatDisplay()` 函数负责生成状态栏的最终显示文本。该函数在 `credit-status.js` 中被调用：
 
 ```javascript
-// credit-status.js 调用流程 (v1.4 更新)
-const credits = session ? await getCredits(session.cookies) : null;
-console.log(formatDisplay(!credits));  // 传递警告状态参数
+// credit-status.js 调用流程
+const [credits, usage] = await Promise.all([...]);
+const hasAnySuccess = credits !== null || usage !== null;
+console.log(formatDisplay(!hasAnySuccess));  // 传递警告状态参数
 ```
 
 **参数说明**：
@@ -425,31 +353,32 @@ buildSeparatedString(['A', '', 'C', 'D'])  // 返回: "A | C | D"
 buildSeparatedString(['A', 'B'], ' - ')     // 返回: "A - B"
 ```
 
-### 可用的数据字段
+### 可用的数据字段 (v2.0 更新)
 
 在 `formatDisplay()` 函数中，你可以使用以下数据：
 
-#### 从缓存获取的积分数据 (`data.creditData`)：
+#### 从 credits_cache 获取的数据：
 ```javascript
-const dailyCurrent = data.creditData.current || 0;           // 当前剩余积分
-const dailyMax = data.creditData.max || 0;                   // 每日积分上限
-const canResetToday = data.creditData.canResetToday || false;// 今日是否可重置
-const recoveryRate = data.creditData.recoveryRate || 0;      // 积分恢复速率
-const remainingResets = data.creditData.remainingResets || 0;// 剩余重置次数
+const creditsData = config['credits_cache']?.data;
+
+const plan = creditsData.user?.plan || 'FREE';    // ULTRA/MAX/PRO/FREE
+const credits = creditsData.user?.credits || 0;    // 总余额（需除以1000）
+const userId = creditsData.user?.id;               // 用户ID
+const userStatus = creditsData.user?.status;       // 账户状态
 ```
 
-#### 从缓存获取的周额度数据 (`data.weeklyUsageData`)：
+#### 从 usage_cache 获取的使用量数据 ：
 ```javascript
-const weeklyUsed = data.weeklyUsageData.weeklyUsed || 0;       // 本周已使用
-const weeklyLimit = data.weeklyUsageData.weeklyLimit || 0;     // 每周限额
-const weeklyRemaining = data.weeklyUsageData.weeklyRemaining || 0; // 本周剩余
-const weeklyPercentage = data.weeklyUsageData.percentage || 0; // 使用百分比
+const usageData = config['usage_cache']?.data;
+
+const consumed = usageData?.consumed || 0;         // 最近1小时消费（需除以1000）
+const added = usageData?.added || 0;               // 最近1小时增加（需除以1000）
+const hour = usageData?.hour;                      // 统计时间段
 ```
 
 #### 订阅计划信息：
 ```javascript
-const plan = data.userPlan || 'FREE';        // ULTRA/MAX/PRO/FREE
-const planIcon = getPlanIcon(data.userPlan); // 👑/💎/⭐/🆓
+const planIcon = getPlanIcon(plan); // 👑/💎/⭐/🆓
 ```
 
 #### 辅助函数获取的信息：
@@ -464,20 +393,26 @@ const currentWorkspace = getCurrentWorkspace();   // 当前工作目录
 ### 当前默认格式
 
 ```javascript
-// display-formatter.js 第 88-97 行
+// display-formatter.js 第 75-80 行
 // 构建状态栏信息，自动过滤空白部分
 const infoParts = buildSeparatedString([
-    `${planIcon} ${realDailyCurrent}/${weeklyLimit-weeklyUsed} (${currentModel})`,
+    `${planIcon} ${creditsDisplay}/${usageDisplay} ¥ (${currentModel})`,
     stylePart,
     branchPart,
     workspacePart
 ]);
 
 // 返回格式化后的状态栏显示字符串
-return `${blue}${infoParts}${reset}`;
+return `${warning ? red : purple}${infoParts}${reset}`;
 ```
 
-**输出示例**: `💎 37288/31167 (sonnet) | default | main(4) | C:\Users\username\project`
+**输出示例**: `👑 924.87/13.36 ¥ (auto) | main(2) | C:\Users\Bozhu12\.claude\cc-aicodemirror-statusline-plus`
+
+**格式解析**:
+- `924.87` - 总余额（保留两位小数）
+- `/` - 分隔符
+- `13.36` - 最近1小时使用量（保留两位小数）
+- `¥` - 单位标识
 
 **智能过滤特性**：使用 `buildSeparatedString()` 辅助方法自动过滤空白部分，当 `stylePart` 或 `branchPart` 为空时，会自动去除对应的 `|` 分隔符。
 
@@ -486,41 +421,42 @@ return `${blue}${infoParts}${reset}`;
 #### 示例 1：紧凑版（只显示关键信息）
 
 ```javascript
-// 修改 display-formatter.js 第 88-97 行为：
+// 修改 display-formatter.js 第 75-83 行为：
 const infoParts = buildSeparatedString([
-    `${planIcon} ${realDailyCurrent}`,
+    `${planIcon} ${creditsDisplay}/${usageDisplay}`,
     currentModel,
     branchPart
 ]);
-return `${blue}${infoParts}${reset}`;
+return `${warning ? red : purple}${infoParts}${reset}`;
 ```
-**输出**: `💎 37288 | sonnet | main(4)`
+**输出**: `👑 924.87/13.36 | auto | main(2)`
 
-#### 示例 2：详细版（包含百分比和周剩余）
+#### 示例 2：详细版（包含时间段和消费趋势）
 
 ```javascript
-// 在第 88 行之前添加百分比计算：
-const dailyPercent = dailyMax > 0 ? Math.round((realDailyCurrent / (dailyMax * (canResetToday ? 2 : 1))) * 100) : 0;
+// 在第 75 行之前添加时间和趋势计算：
+const usageTime = usageData?.hour ? new Date(usageData.hour).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '';
+const usageTrend = usageData && usageData.consumed > 10000 ? '🔥' : '📊';
 
-// 修改第 88-97 行为：
+// 修改第 75-83 行为：
 const infoParts = buildSeparatedString([
-    `${planIcon} 日:${dailyPercent}%`,
-    `周:${weeklyRemaining}/${weeklyLimit}`,
+    `${planIcon} ${creditsDisplay}`,
+    `${usageTrend}${usageDisplay}/h`,
+    usageTime,
     currentModel,
-    branchPart,
-    workspacePart
+    branchPart
 ]);
-return `${blue}${infoParts}${reset}`;
+return `${warning ? red : purple}${infoParts}${reset}`;
 ```
-**输出**: `💎 日:93% | 周:31167/96000 | sonnet | main(4) | C:\Users\username\project`
+**输出**: `👑 924.87 | 🔥13.36/h | 11:00 | auto | main(2)`
 
-#### 示例 3：极简版（仅积分和模型）
+#### 示例 3：极简版（仅余额和使用量）
 
 ```javascript
-// 修改 display-formatter.js 第 88-97 行为：
-return `${blue}${realDailyCurrent}/${weeklyRemaining} ${currentModel}${reset}`;
+// 修改 display-formatter.js 第 75-83 行为：
+return `${warning ? red : purple}${creditsDisplay}/${usageDisplay} ${currentModel}${reset}`;
 ```
-**输出**: `37288/31167 sonnet`
+**输出**: `924.87/13.36 auto`
 
 #### 示例 4：多彩版（使用不同颜色）
 
@@ -532,30 +468,47 @@ const yellow = '\x1b[33m';
 const cyan = '\x1b[36m';
 const reset = '\x1b[0m';
 
-// 修改第 88-97 行为：
+// 修改第 75-83 行为：
 const infoParts = buildSeparatedString([
-    `${blue}${planIcon} ${green}${realDailyCurrent}${reset}/${yellow}${weeklyRemaining}${reset}`,
+    `${blue}${planIcon} ${green}${creditsDisplay}${reset}/${yellow}${usageDisplay}${reset}`,
     `${cyan}(${currentModel})${reset}`,
     branchPart
 ]);
 return infoParts;  // 注意：颜色已在各部分中设置，无需外层包裹
 ```
-**输出**: `💎 37288/31167 (sonnet) | main(4)` (带颜色)
+**输出**: `👑 924.87/13.36 (auto) | main(2)` (带颜色)
 
-#### 示例 5：自定义分隔符
+#### 示例 5：百分比监控版（显示消费百分比）
 
 ```javascript
-// 修改 display-formatter.js 第 88-97 行为：
+// 在第 75 行之前添加百分比计算：
+const usagePercent = credits > 0 ? ((usageData?.consumed || 0) / credits * 100).toFixed(1) : 0;
+
+// 修改第 75-83 行为：
+const infoParts = buildSeparatedString([
+    `${planIcon} ${creditsDisplay}`,
+    `消费:${usageDisplay}(${usagePercent}%)`,
+    currentModel,
+    branchPart
+]);
+return `${warning ? red : purple}${infoParts}${reset}`;
+```
+**输出**: `👑 924.87 | 消费:13.36(1.4%) | auto | main(2)`
+
+#### 示例 6：自定义分隔符
+
+```javascript
+// 修改 display-formatter.js 第 75-83 行为：
 // 使用不同的分隔符（如空格或箭头）
 const infoParts = buildSeparatedString([
-    `${planIcon} ${realDailyCurrent}/${weeklyRemaining}`,
+    `${planIcon} ${creditsDisplay}/${usageDisplay}`,
     currentModel,
     branchPart,
     workspacePart
 ], ' → ');  // 自定义分隔符
-return `${blue}${infoParts}${reset}`;
+return `${warning ? red : purple}${infoParts}${reset}`;
 ```
-**输出**: `💎 37288/31167 → sonnet → main(4) → C:\Users\username\project`
+**输出**: `👑 924.87/13.36 → auto → main(2) → C:\Users\Bozhu12\.claude\cc-aicodemirror-statusline-plus`
 
 ### ANSI 颜色代码参考
 
@@ -591,11 +544,12 @@ const reset   = '\x1b[0m'; // 重置所有样式
    nano ~/.claude/cc-aicodemirror-statusline-plus/display-formatter.js
    ```
 
-2. **找到第 88-97 行**（`formatDisplay()` 函数中构建状态栏信息的部分）
+2. **找到第 75-83 行**（`formatDisplay()` 函数中构建状态栏信息的部分）
 
 3. **替换为你的自定义格式**
    - 可以直接修改 `buildSeparatedString()` 中的数组元素
    - 也可以完全替换为自己的格式化逻辑
+   - v2.0 提供了 `creditsDisplay` 和 `usageDisplay` 两个核心数据
 
 4. **测试修改**：
    ```bash
@@ -615,53 +569,63 @@ const reset   = '\x1b[0m'; // 重置所有样式
 如果你想添加更多信息，可以在 `formatDisplay()` 函数中计算新的值：
 
 ```javascript
-// 在第 88 行之前添加自定义计算
-const dailyUsed = dailyMax - dailyCurrent;                    // 今日已用
-const dailyUsedPercent = Math.round((dailyUsed / dailyMax) * 100); // 今日使用率
-const resetInfo = canResetToday ? '🔄' : '';                   // 可重置标记
+// 在第 75 行之前添加自定义计算
+const usagePercent = credits > 0 ? ((usageData?.consumed || 0) / credits * 100).toFixed(1) : 0; // 使用率
+const avgUsagePerMin = usageData ? (usageData.consumed / 1000 / 60).toFixed(3) : 0; // 平均每分钟消费
 const timeInfo = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }); // 当前时间
+const planEmoji = plan === 'ULTRA' ? '👑' : plan === 'MAX' ? '💎' : plan === 'PRO' ? '⭐' : '🆓';
 
 // 使用这些新字段
 const infoParts = buildSeparatedString([
-    `${planIcon}${resetInfo} ${realDailyCurrent} (用${dailyUsedPercent}%)`,
+    `${planEmoji} ${creditsDisplay}`,
+    `消费:${usageDisplay}(${usagePercent}%)`,
+    `${avgUsagePerMin}/min`,
     currentModel,
     timeInfo
 ]);
-return `${blue}${infoParts}${reset}`;
+return `${warning ? red : purple}${infoParts}${reset}`;
 ```
-**输出**: `💎🔄 37288 (用7%) | sonnet | 14:30`
+**输出**: `👑 924.87 | 消费:13.36(1.4%) | 0.223/min | auto | 11:30`
 
 ### 条件格式化
 
-你可以根据积分余量使用不同的显示样式：
+你可以根据余额和使用量使用不同的显示样式：
 
 ```javascript
-// 在第 88 行之前，根据剩余积分选择颜色
+// 在第 75 行之前，根据剩余余额和使用量选择颜色
 const green = '\x1b[32m';
 const yellow = '\x1b[33m';
 const red = '\x1b[31m';
 const reset = '\x1b[0m';
 
+// 余额颜色判断
 let creditColor = green;  // 充足
-if (realDailyCurrent < 5000) creditColor = yellow;  // 警告
-if (realDailyCurrent < 2000) creditColor = red;     // 危险
+if (credits < 500000) creditColor = yellow;  // 警告（500）
+if (credits < 100000) creditColor = red;     // 危险（100）
+
+// 使用量颜色判断（根据消费速度）
+let usageColor = green;  // 正常
+const usageValue = usageData?.consumed || 0;
+if (usageValue > 10000) usageColor = yellow;  // 中度使用（10/小时）
+if (usageValue > 50000) usageColor = red;     // 高度使用（50/小时）
 
 // 使用条件颜色
 const infoParts = buildSeparatedString([
-    `${creditColor}${planIcon} ${realDailyCurrent}${reset}/${weeklyRemaining}`,
+    `${planIcon} ${creditColor}${creditsDisplay}${reset}/${usageColor}${usageDisplay}${reset}`,
     currentModel,
     branchPart
 ]);
 return infoParts;
 ```
+**效果**: 余额不足或使用量过高时，对应数字会变色提醒
 
 ### 调试技巧
 
 在修改过程中，可以使用 `console.error()` 输出调试信息（不会影响状态栏显示）：
 
 ```javascript
-console.error('调试信息 - 当前积分:', realDailyCurrent);
-console.error('调试信息 - 周剩余:', weeklyRemaining);
+console.error('调试信息 - 总余额:', creditsDisplay);
+console.error('调试信息 - 使用量:', usageDisplay);
 ```
 
 然后运行：
@@ -671,7 +635,7 @@ node credit-status.js 2> debug.log  # 调试信息会写入 debug.log
 
 ## 🔍 故障排除
 
-### 1. 状态栏不显示积分
+### 1. 状态栏不显示信息
 
 **检查项目：**
 - 确认 `ANTHROPIC_BASE_URL` 包含 `aicodemirror.com`
@@ -715,13 +679,13 @@ cd ~/.claude/cc-aicodemirror-statusline-plus                 # Linux/macOS
 node credit-status.js --debug
 
 # 手动测试网络连接
-curl -H "Cookie: 你的Cookie" https://www.aicodemirror.com/dashboard/credit-packs
+curl -H "Cookie: 你的Cookie" https://www.aicodemirror.com/api/user/profile
 
 # 重新获取Cookie
 node save-cookie.js "新Cookie"
 ```
 
-### 3 状态栏文字显示红色
+### 3. 状态栏文字显示红色
 
 **现象：** 整个状态栏内容变为红色加粗显示
 
@@ -740,7 +704,7 @@ node save-cookie.js "新Cookie"
 2. **测试网络连接**
    ```bash
    # 测试能否访问目标网站
-   curl https://www.aicodemirror.com/dashboard/credit-packs
+   curl https://www.aicodemirror.com/api/user/profile
    ```
 
 3. **使用调试模式定位问题**
@@ -805,7 +769,7 @@ cat ~/.claude/settings.json | grep model
 ## 📝 注意事项
 
 1. **隐私安全**：Cookie 包含认证信息，请妥善保管，不要分享给他人
-2. **缓存机制**：积分信息会缓存30秒，避免频繁API调用
+2. **缓存机制**：数据信息会缓存30秒，避免频繁API调用
 3. **网络要求**：需要能够访问 aicodemirror.com 的网络环境
 4. **版本兼容**：支持 Node.js 14+ 版本
 
