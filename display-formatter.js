@@ -29,12 +29,14 @@ function formatDisplay(warning) {
     // 从配置文件中加载所有配置信息
     const config = loadConfig();
     // 缓存键名，用于访问积分缓存数据
-    const cacheKey = 'credits_cache';
-    // 从配置对象中提取积分数据，如果缓存不存在则为null
-    const data = config[cacheKey] ? config[cacheKey].data : null;
+    const creditsCacheKey = 'credits_cache';
+    const usageCacheKey = 'usage_cache';
+    // 从配置对象中提取积分数据和使用量数据
+    const creditsData = config[creditsCacheKey] ? config[creditsCacheKey].data : null;
+    const usageData = config[usageCacheKey] ? config[usageCacheKey].data : null;
 
     // 如果没有积分数据，返回需要Cookie的提示信息
-    if (!data) return `${red}🍪 json解析异常${reset}`;
+    if (!creditsData) return `${red}🍪 json解析异常${reset}`;
 
     // 当前Git分支名称，如果不在Git仓库中则为null
     const currentBranch = getCurrentBranch();
@@ -53,37 +55,25 @@ function formatDisplay(warning) {
         // 工作空间路径部分的显示字符串
         const workspacePart = `${currentWorkspace}`;
 
-        // 当前每日已使用的积分数量
-        const dailyCurrent = data.creditData.current || 0;
-        // 每日积分的最大限制数量
-        const dailyMax = data.creditData.max || 0;
-        // 每日积分使用百分比，限制在0-100之间
-        const dailyPercentage = dailyMax > 0 ? Math.min(100, Math.max(0, Math.round((dailyCurrent / dailyMax) * 100))) : 0;
-        // 本周已使用的积分数量
-        const weeklyUsed = data.weeklyUsageData.weeklyUsed || 0;
-        // 每周积分的总限制数量
-        const weeklyLimit = data.weeklyUsageData.weeklyLimit || 0;
-        // 每周积分使用百分比，限制在0-100之间
-        const weeklyPercentage = weeklyLimit > 0 ? Math.min(100, Math.max(0, Math.round((weeklyUsed / weeklyLimit) * 100))) : 0;
         // 用户订阅计划类型（ULTRA/MAX/PRO/FREE）
-        const plan = data.userPlan || 'FREE';
+        const plan = creditsData.user?.plan || 'FREE';
         // 根据用户计划类型获取对应的图标（👑/💎/⭐/🆓）
-        const planIcon = getPlanIcon(data.userPlan);
-        // 今天是否可以重置积分的布尔值标记
-        const canResetToday = data.creditData.canResetToday || false;
+        const planIcon = getPlanIcon(plan);
         // 当前使用的AI模型名称（haiku/sonnet/opus/auto）
         const currentModel = getCurrentModel();
+        // 总积分数（除以1000显示真实值，保留两位小数）
+        const credits = creditsData.user?.credits || 0;
+        const creditsDisplay = (credits / 1000).toFixed(2);
 
-        // 真实数值 (含有重置数值)
-        let realDailyCurrent = dailyCurrent;
-        try {
-            if (canResetToday) realDailyCurrent = parseInt(dailyCurrent.trim()) + parseInt(dailyMax.trim());
-        } catch (error) {
+        // 获取最近1小时的使用量（保留两位小数）
+        let usageDisplay = '0.00';
+        if (usageData && typeof usageData.consumed === 'number') {
+            usageDisplay = (usageData.consumed / 1000).toFixed(2);
         }
 
         // 构建状态栏信息，自动过滤空白部分
         const infoParts = buildSeparatedString([
-            `${planIcon} ${realDailyCurrent}/${weeklyLimit - weeklyUsed} (${currentModel})`,
+            `${planIcon} ${creditsDisplay}/${usageDisplay} (${currentModel})`,
             stylePart,
             branchPart,
             workspacePart
