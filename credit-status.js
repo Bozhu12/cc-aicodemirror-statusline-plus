@@ -9,12 +9,10 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const { formatDisplay, getCurrentModel } = require('./display-formatter');
+const { loadConfig, updateConfig, getConfigField } = require('./config-manager');
 
 // 缓存配置 - 30秒缓存，避免频繁API调用
 const CACHE_DURATION = 30; // 秒
-
-// 配置文件路径 - 优先使用相对路径
-const CONFIG_FILE = path.join(__dirname, 'aicodemirror-config.json');
 
 // 禁用SSL证书验证警告
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -27,29 +25,6 @@ function consoleLog(...logs) {
   if (DEBUG_MODE) {
     console.log(...logs);
   }
-}
-
-
-function loadConfig() {
-    try {
-        if (!fs.existsSync(CONFIG_FILE)) return {};
-        const data = fs.readFileSync(CONFIG_FILE, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        return {};
-    }
-}
-
-function saveConfig(config) {
-    try {
-        const configDir = path.dirname(CONFIG_FILE);
-        if (!fs.existsSync(configDir)) {
-            fs.mkdirSync(configDir, { recursive: true });
-        }
-        fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
-    } catch (error) {
-        // 忽略错误
-    }
 }
 
 function getCredits(cookies) {
@@ -107,13 +82,13 @@ function getCredits(cookies) {
                         throw new Error("响应中缺少必需字段: user.credits");
                     }
 
-                    // 保存到缓存 - 重新加载config避免并发覆盖
-                    const latestConfig = loadConfig();
-                    latestConfig[cacheKey] = {
-                        data: response,
-                        timestamp: currentTime
-                    };
-                    saveConfig(latestConfig);
+                    // 保存到缓存 - 使用配置管理模块，自动保留其他字段
+                    updateConfig({
+                        [cacheKey]: {
+                            data: response,
+                            timestamp: currentTime
+                        }
+                    });
 
                     resolve(response);
                 } catch (error) {
@@ -194,13 +169,13 @@ function getUsageChart(cookies) {
                     // 读取 chartData 数组的最后一条数据
                     const firstUsage = response.chartData[response.chartData.length - 1];
 
-                    // 保存到缓存 - 重新加载config避免并发覆盖
-                    const latestConfig = loadConfig();
-                    latestConfig[cacheKey] = {
-                        data: firstUsage,
-                        timestamp: currentTime
-                    };
-                    saveConfig(latestConfig);
+                    // 保存到缓存 - 使用配置管理模块，自动保留其他字段
+                    updateConfig({
+                        [cacheKey]: {
+                            data: firstUsage,
+                            timestamp: currentTime
+                        }
+                    });
 
                     resolve(firstUsage);
                 } catch (error) {
@@ -239,8 +214,8 @@ function getDisplayUrl() {
 }
 
 function getValidSession() {
-    const config = loadConfig();
-    return config.cookies ? { cookies: config.cookies } : null;
+    const cookies = getConfigField('cookies', null);
+    return cookies ? { cookies } : null;
 }
 
 function checkAnthropicBaseUrl() {

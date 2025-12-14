@@ -7,9 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const {execSync} = require('child_process');
-
-// 配置文件路径
-const CONFIG_FILE = path.join(__dirname, 'aicodemirror-config.json');
+const { loadConfig } = require('./config-manager');
 
 
 /**
@@ -99,21 +97,6 @@ function buildSeparatedString(parts, separator = ' | ') {
     return parts.filter(part => part && part.trim()).join(separator);
 }
 
-/**
- * 加载配置文件
- * @returns {object} 配置对象
- */
-function loadConfig() {
-    try {
-        if (!fs.existsSync(CONFIG_FILE)) {
-            return {};
-        }
-        const data = fs.readFileSync(CONFIG_FILE, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        return {};
-    }
-}
 
 /**
  * 获取当前使用的模型
