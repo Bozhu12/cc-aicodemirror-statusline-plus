@@ -225,6 +225,24 @@ cp aicodemirror-config.example.json aicodemirror-config.json
 - `ANTHROPIC_MODEL`：当前模型，优先级高于配置文件
 - `CLAUDE_OUTPUT_STYLE`：输出风格，优先级高于配置文件
 
+## 🛠️ 工具目录 (tools/)
+
+项目包含一个 `tools/` 目录,集中管理 Cookie 和用量查询工具。详细文档请参考 [tools/README.md](tools/README.md)。
+
+**快速链接：**
+
+| 工具 | 说明 | 使用示例 |
+|------|------|---------|
+| [save-cookie.js](tools/README.md#1-save-cookiejs---cookie-保存工具) | Cookie 保存工具 | `node tools/save-cookie.js "Cookie"` |
+| [calculate-usage.js](tools/README.md#2-calculate-usagejs---今日额度使用量计算) | 今日额度使用量计算 | `node tools/calculate-usage.js` |
+| [daily-usage.js](tools/README.md#3-daily-usagejs---api-key-用量统计) | API Key 用量统计 | `node tools/daily-usage.js` |
+
+**特点：**
+- ✅ 统一配置管理（自动读取 `aicodemirror-config.json`）
+- ✅ Cookie 过期友好提示
+- ✅ 详细的数据统计报表
+- ✅ 独立的使用文档
+
 ## 🛠️ 脚本说明
 
 ### credit-status.js
@@ -584,6 +602,24 @@ const infoParts = buildSeparatedString([
 return `${warning ? red : purple}${infoParts}${reset}`;
 ```
 **输出**: `👑 924.87 | 消费:13.36(1.4%) | 0.223/min | auto | 11:30`
+
+## 📦 项目结构
+
+```
+cc-aicodemirror-statusline-plus/
+├── tools/                          # 工具集目录
+│   ├── README.md                  # 工具使用文档
+│   ├── save-cookie.js             # Cookie 保存工具
+│   ├── calculate-usage.js         # 今日额度使用量计算
+│   └── daily-usage.js             # API Key 用量统计
+├── config-manager.js              # 统一配置管理模块
+├── credit-status.js               # 状态栏积分显示脚本
+├── display-formatter.js           # 显示格式化模块
+├── aicodemirror-config.json       # 配置文件（自动生成）
+├── aicodemirror-config.example.json # 配置模板文件
+├── README.md                      # 项目主文档
+└── .gitignore                     # Git 忽略配置
+```
 
 ### 条件格式化
 
