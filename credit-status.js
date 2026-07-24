@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Claude Code 积分状态栏脚本
- * 用途: 在状态栏显示 aicodemirror.com 的积分余额
+ * 用途: 在状态栏显示 aicodemirror 官网的积分余额
  * 版本: v1.3 (Node.js)
  */
 
@@ -27,6 +27,23 @@ function consoleLog(...logs) {
   }
 }
 
+// 余额接口只有官网域名支持，中转/代理域名（ANTHROPIC_BASE_URL）不支持。
+// 因此官网域名统一从配置文件 aicodemirror-config.json 的 base_url 读取，
+// 以后官方再换域名，只需改配置里的 base_url 即可，无需改代码。
+const DEFAULT_BASE_URL = 'https://www.aicodemirror.ai';
+
+// 读取配置中的官网 base_url（缺省时回退到默认值）
+function getConfiguredBaseUrl() {
+    const url = getConfigField('base_url', '') || '';
+    return url.trim() || DEFAULT_BASE_URL;
+}
+
+// 从配置的 base_url 解析出 API 请求主机名
+function getApiHostname() {
+    const match = getConfiguredBaseUrl().match(/https?:\/\/([^\/]+)/i);
+    return match ? match[1] : 'www.aicodemirror.ai';
+}
+
 function getCredits(cookies) {
     return new Promise((resolve) => {
         if (!cookies) {
@@ -49,7 +66,7 @@ function getCredits(cookies) {
         }
 
         const options = {
-            hostname: 'www.aicodemirror.com',
+            hostname: getApiHostname(),
             path: '/api/user/profile',
             method: 'GET',
             headers: {
@@ -133,7 +150,7 @@ function getUsageChart(cookies) {
         }
 
         const options = {
-            hostname: 'www.aicodemirror.com',
+            hostname: getApiHostname(),
             path: '/api/user/usage/chart?hours=1',
             method: 'GET',
             headers: {
@@ -199,18 +216,8 @@ function getUsageChart(cookies) {
 }
 
 function getDisplayUrl() {
-    const baseUrl = process.env.ANTHROPIC_BASE_URL || '';
-    if (baseUrl) {
-        if (baseUrl.includes('aicodemirror.com')) {
-            return 'aicodemirror.com';
-        } else {
-            const match = baseUrl.match(/https?:\/\/([^\/]+)/);
-            if (match) {
-                return match[1];
-            }
-        }
-    }
-    return 'anthropic.com';
+    // 显示官网域名（来自配置 base_url），去掉 www. 前缀更简洁
+    return getApiHostname().replace(/^www\./i, '');
 }
 
 function getValidSession() {
@@ -219,8 +226,8 @@ function getValidSession() {
 }
 
 function checkAnthropicBaseUrl() {
-    const baseUrl = process.env.ANTHROPIC_BASE_URL || '';
-    return baseUrl.includes('aicodemirror.com');
+    // 是否走完整余额功能：以配置的官网 base_url 为准（余额接口只有官网支持）
+    return /aicodemirror\.[a-z]+/i.test(getConfiguredBaseUrl());
 }
 
 async function main() {
@@ -229,7 +236,7 @@ async function main() {
         if (!checkAnthropicBaseUrl()) {
             const currentUrl = getDisplayUrl();
             const currentModel = getCurrentModel();
-            consoleLog(`${currentModel} | ${currentUrl}`);
+            console.log(`${currentModel} | ${currentUrl}`);
             return;
         }
 

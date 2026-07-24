@@ -8,9 +8,14 @@
 
 const { getConfigField } = require('../config-manager');
 
+// 官网域名从配置 base_url 读取，兼容换域名（缺省回退到默认官网）
+function getBaseUrl() {
+  return (getConfigField('base_url', '') || '').trim().replace(/\/+$/, '') || 'https://www.aicodemirror.ai';
+}
+
 // 从 API 获取数据（24小时）
 async function fetchFromAPI() {
-  const url = 'https://www.aicodemirror.com/api/user/usage?hours=24';
+  const url = `${getBaseUrl()}/api/user/usage?hours=24`;
 
   // 从配置文件读取 Cookie
   const cookies = getConfigField('cookies', null);
@@ -34,7 +39,9 @@ async function fetchFromAPI() {
 
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-    return await response.json();
+    const json = await response.json();
+    // 接口返回 {data: [...]}，兼容旧版直接返回数组的情况
+    return Array.isArray(json) ? json : (json.data || json);
   } catch (error) {
     console.error('API 请求失败:', error.message);
     process.exit(1);

@@ -1,10 +1,10 @@
 # Claude Code 状态栏增强插件 v2.0
 
-这是一个用于 Claude Code 的状态栏增强插件，可以在状态栏显示 aicodemirror.com 的余额、实时使用量、计划类型、当前模型、Git 分支状态等信息。
+这是一个用于 Claude Code 的状态栏增强插件，可以在状态栏显示 aicodemirror 的余额、实时使用量、计划类型、当前模型、Git 分支状态等信息。
 
 ## ✨ 功能特性
 
-- 💎 **余额显示**：实时显示 aicodemirror.com 余额和计划类型
+- 💎 **余额显示**：实时显示 aicodemirror 余额和计划类型
 - 📊 **使用量监控** ：显示最近1小时的实时使用量，精确掌握消费情况
 - 🤖 **模型信息**：显示当前使用的 Claude 模型版本
 - 🎨 **输出风格**：显示当前 Claude 输出风格配置
@@ -65,9 +65,9 @@ git clone https://github.com/Bozhu12/cc-aicodemirror-statusline-plus.git .
 
 ### 3. 获取并配置 Cookie
 
-#### 步骤 1：登录 aicodemirror.com
+#### 步骤 1：登录 aicodemirror 官网
 
-1. 打开浏览器，访问 https://www.aicodemirror.com/dashboard
+1. 打开浏览器，访问 https://www.aicodemirror.ai/dashboard
 2. 使用你的账号登录
 
 #### 步骤 2：获取 Cookie
@@ -166,6 +166,7 @@ cp aicodemirror-config.example.json aicodemirror-config.json
 
 ```json
 {
+  "base_url": "https://www.aicodemirror.ai",
   "cookies": "你的Cookie字符串",
   "credits_cache": {
     "data": {
@@ -196,7 +197,8 @@ cp aicodemirror-config.example.json aicodemirror-config.json
 
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `cookies` | string | - | aicodemirror.com 的认证 Cookie<br/>⚠️ 包含敏感信息，不要分享 |
+| `base_url` | string | `https://www.aicodemirror.ai` | 官网地址，用于请求余额/用量接口。<br/>余额接口只有官网域名支持（`ANTHROPIC_BASE_URL` 可能是中转/代理域名，不适用）。<br/>官方若更换域名，只需修改此字段即可，无需改代码。 |
+| `cookies` | string | - | 官网的认证 Cookie<br/>⚠️ 包含敏感信息，不要分享 |
 
 **缓存数据 (v2.0 更新)：**
 
@@ -217,11 +219,14 @@ cp aicodemirror-config.example.json aicodemirror-config.json
 
 **手动编辑提示：**
 
-通常你只需要手动编辑 `cookies` 字段，其他字段由插件自动管理，建议不要手动修改。
+通常你只需要手动编辑 `cookies` 字段（以及官方换域名时的 `base_url` 字段），其余字段由插件自动管理，建议不要手动修改。
+
+> 💡 `base_url` 可通过 `save-cookie.js` 的第二个参数写入，例如：
+> `node tools/save-cookie.js '你的Cookie' https://www.aicodemirror.ai`
+> 不传时若配置中尚无 `base_url`，会自动写入默认官网域名。
 
 ### 环境变量支持
 
-- `ANTHROPIC_BASE_URL`：API 基础地址，包含 `aicodemirror.com` 时才显示信息
 - `ANTHROPIC_MODEL`：当前模型，优先级高于配置文件
 - `CLAUDE_OUTPUT_STYLE`：输出风格，优先级高于配置文件
 
@@ -672,7 +677,7 @@ node credit-status.js 2> debug.log  # 调试信息会写入 debug.log
 ### 1. 状态栏不显示信息
 
 **检查项目：**
-- 确认 `ANTHROPIC_BASE_URL` 包含 `aicodemirror.com`
+- 确认 `aicodemirror-config.json` 中的 `base_url` 为正确的官网地址（如 `https://www.aicodemirror.ai`）
 - 检查配置文件是否存在
 - 验证 Cookie 是否有效（重新获取）
 
@@ -713,7 +718,7 @@ cd ~/.claude/cc-aicodemirror-statusline-plus                 # Linux/macOS
 node credit-status.js --debug
 
 # 手动测试网络连接
-curl -H "Cookie: 你的Cookie" https://www.aicodemirror.com/api/user/profile
+curl -H "Cookie: 你的Cookie" https://www.aicodemirror.ai/api/user/profile
 
 # 重新获取Cookie
 node save-cookie.js "新Cookie"
@@ -726,7 +731,7 @@ node save-cookie.js "新Cookie"
 **原因：** API请求失败，可能是：
 - Cookie已过期或无效
 - 网络连接中断
-- aicodemirror.com服务异常
+- aicodemirror 服务异常
 
 **解决方法：**
 1. **检查Cookie有效性**
@@ -738,7 +743,7 @@ node save-cookie.js "新Cookie"
 2. **测试网络连接**
    ```bash
    # 测试能否访问目标网站
-   curl https://www.aicodemirror.com/api/user/profile
+   curl https://www.aicodemirror.ai/api/user/profile
    ```
 
 3. **使用调试模式定位问题**
@@ -804,7 +809,7 @@ cat ~/.claude/settings.json | grep model
 
 1. **隐私安全**：Cookie 包含认证信息，请妥善保管，不要分享给他人
 2. **缓存机制**：数据信息会缓存30秒，避免频繁API调用
-3. **网络要求**：需要能够访问 aicodemirror.com 的网络环境
+3. **网络要求**：需要能够访问 aicodemirror 官网的网络环境
 4. **版本兼容**：支持 Node.js 14+ 版本
 
 ## 🤝 贡献

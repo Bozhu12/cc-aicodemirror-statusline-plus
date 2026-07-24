@@ -1,4 +1,5 @@
 {
+  "base_url": "https://www.aicodemirror.ai",
   "cookies": "你的Cookie字符串,使用 save-cookie.js 保存",
   "creditThreshold": 1000,
   "autoResetEnabled": false,
