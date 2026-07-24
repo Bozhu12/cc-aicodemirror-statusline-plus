@@ -15,11 +15,11 @@ node tools/save-cookie.js "你的Cookie字符串"
 **详细步骤：**
 
 1. **获取 Cookie：**
-   - 浏览器打开 https://www.aicodemirror.com/dashboard
+   - 浏览器打开 https://www.aicodemirror.ai/dashboard
    - 按 `F12` 打开开发者工具
    - 切换到 `Network` (网络) 标签
    - 刷新页面 (`F5`)
-   - 点击任意一个 `www.aicodemirror.com` 域名的请求
+   - 点击任意一个 `www.aicodemirror.ai` 域名的请求
    - 在 `Request Headers` 中找到 `Cookie` 字段
    - 复制完整的 Cookie 值
 

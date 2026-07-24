@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Claude Code 积分状态栏脚本
- * 用途: 在状态栏显示 aicodemirror.com 的积分余额
+ * 用途: 在状态栏显示 aicodemirror 官网的积分余额
  * 版本: v1.3 (Node.js)
  */
 
